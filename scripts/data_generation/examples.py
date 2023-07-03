@@ -26,10 +26,10 @@ plt.title(f'Pitman-Yor samples distribution with intensity {intensity} discount 
 # %% Check Poisson process data generation
 from data_generation.data_generation import generate_poisson_process
 
-intensity = 1.
+rate = 1.
 t0 = time.time()
 time_sequence_0 = generate_poisson_process(
-    intensity=intensity,
+    rate=rate,
     length=100,
     seed=0)
 dt = time.time() - t0
@@ -37,7 +37,7 @@ print(f"Simulated in {dt}")
 
 t0 = time.time()
 time_sequence_1 = generate_poisson_process(
-    intensity=intensity,
+    rate=rate,
     max=118.1,
     seed=0)
 dt = time.time() - t0
@@ -45,7 +45,7 @@ print(f"Simulated in {dt}")
 
 try:
     time_sequence = generate_poisson_process(
-        intensity=intensity,
+        rate=rate,
         length=100,
         max=118.1,
         seed=0)
