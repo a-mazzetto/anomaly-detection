@@ -15,5 +15,5 @@ _ = generate_dataset(
     source_discounts=0.5,
     node_names=constants.computer_names,
     seed=SEED,
-    dicretize_time=True,
+    discretize_time=True,
     file_name=FILE_NAME)

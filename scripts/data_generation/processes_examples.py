@@ -27,6 +27,37 @@ plt.hist(sequence)
 plt.xticks(rotation = 75)
 plt.title(f'Pitman-Yor samples distribution with intensity {intensity} discount {discount}')
 
+# %% Anomalous PY
+# Randomly generated anomalous base measure
+from processes.dirichlet import sample_dirichlet_process_geometric_base
+from processes.pitman_yor import generate_pitman_yor_with_anomaly
+gen=np.random.default_rng(seed=0)
+
+intensity = 7.0
+discount = 0.25
+
+masses = np.arange(50)
+gen.shuffle(masses)
+anomalous_base_measure = [
+    masses,
+    sample_dirichlet_process_geometric_base(intensity=1000, theta=0.05, n=50, gen=gen)]
+
+t0 = time.time()
+sequence = generate_pitman_yor_with_anomaly(
+    labels=50,
+    intensity=intensity,
+    discount=discount,
+    anomaly=np.array((*np.zeros(shape=500), *np.ones(shape=200), *np.zeros(shape=300))),
+    anomaly_base_measure=anomalous_base_measure,
+    length=1000,
+    seed=0)
+dt = time.time() - t0
+print(f"Simulated in {dt}")
+
+plt.hist(sequence)
+plt.xticks(rotation = 75)
+plt.title(f'Pitman-Yor samples distribution with intensity {intensity} discount {discount}')
+
 # %% Check Poisson process data generation
 from processes.poisson import poisson_process
 
@@ -181,4 +212,20 @@ ax[1, 0].vlines(x=rate0 * tmax + np.array([0, -rate1, rate1]),
                 colors=['red'])
 
 ax[1, 1].hist(elapsed_time)
-# %%
+# %% Sample distribution from Dirichlet Process
+from processes.dirichlet import sample_dirichlet_process_geometric_base
+from scipy.stats import geom
+
+NUM = 100
+THETA = 0.05
+
+dp_sample = sample_dirichlet_process_geometric_base(
+    intensity=1000,
+    theta=THETA,
+    n=NUM,
+    gen=np.random.default_rng(seed=0))
+
+plt.plot(dp_sample, ls='None', marker='x')
+plt.plot(geom(THETA).pmf(np.arange(1, NUM + 1)))
+plt.xlabel('Support')
+plt.ylabel('Mass')
