@@ -229,3 +229,31 @@ plt.plot(dp_sample, ls='None', marker='x')
 plt.plot(geom(THETA).pmf(np.arange(1, NUM + 1)))
 plt.xlabel('Support')
 plt.ylabel('Mass')
+
+# %% Simulate distance-dependent Chinese Restaurant Process
+from processes.dirichlet import generate_exp_ddcrp
+from processes.poisson import poisson_process
+
+RATE = 1.0
+INTENSITY = 10.0
+DECAY = 10.0
+time_sequence = poisson_process(
+    rate=RATE,
+    tmax=100,
+    gen=0)
+
+t0 = time.time()
+sequence = generate_exp_ddcrp(
+    labels=50,
+    intensity=INTENSITY,
+    decay=DECAY,
+    times=time_sequence,
+    seed=0)
+dt = time.time() - t0
+print(f"Simulated in {dt}")
+
+plt.hist(sequence)
+plt.xticks(rotation = 75)
+plt.title(f'DDCRP samples distribution with intensity {INTENSITY}')
+
+# %%
