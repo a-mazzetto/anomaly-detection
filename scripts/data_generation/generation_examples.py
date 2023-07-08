@@ -104,4 +104,32 @@ generate_dataset(
     dicretize_time=True,
     file_name="../../data/dataset_0.txt")
 
+# %% Generate DDCRP
+from data_generation.data_generation import generate_ddcrp_dataset
+
+NNODES  = 100
+computer_names = [f'C{i}' for i in range(NNODES)]
+# For example, simulate 12h
+MAX_TIME = 12 * 60 * 60
+# For example, 3h period
+PERIOD = 3 * 60 * 60
+# 1h decay
+DECAY = 1 * 60 * 60
+
+def source_intensities(gen, size):
+    return gen.choice(a=[2., 7., 12.], p=[0.2, 0.3, 0.5], size=size)
+
+generate_ddcrp_dataset(
+    max_time=MAX_TIME,
+    period=PERIOD,
+    n_nodes=NNODES,
+    destination_intensity=7.0,
+    destination_discount=0.25,
+    source_intensities=source_intensities,
+    source_decay=DECAY,
+    node_names=computer_names,
+    seed=0,
+    discretize_time=True,
+    file_name="../../data/dataset_0.txt")
+
 # %%
