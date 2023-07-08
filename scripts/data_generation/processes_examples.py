@@ -2,11 +2,27 @@
 # %% Imports
 import time
 import numpy as np
+from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 from IPython import display
 
 def time_sequence_as_counting(_sequence):
     return np.cumsum(np.ones_like(_sequence))
+
+def lin_law(x, a, b):
+    return a + x * b
+
+def power_law_fit(x, y):
+    theta, _ = curve_fit(lin_law, np.log(x), np.log(y))
+    return np.exp(theta[0]), theta[1]
+
+def order_histogram(seq, *args, **kwargs):
+    """Order histogram bins and fit quadratic law"""
+    unique = np.unique(seq)
+    counts = np.array([seq.count(i) for i in unique])
+    order = np.argsort(counts)[::-1]
+    dummy_x = np.arange(len(order))
+    return plt.bar(dummy_x, counts[order], *args, **kwargs)
 
 # %% Check Pitman-Yor data generation
 from data_generation.data_generation import generate_pitman_yor
@@ -23,7 +39,8 @@ sequence = generate_pitman_yor(
 dt = time.time() - t0
 print(f"Simulated in {dt}")
 
-plt.hist(sequence)
+plt.hist(sequence, bins=50)
+order_histogram(sequence, alpha=0.5)
 plt.xticks(rotation = 75)
 plt.title(f'Pitman-Yor samples distribution with intensity {intensity} discount {discount}')
 
@@ -234,8 +251,8 @@ plt.ylabel('Mass')
 from processes.dirichlet import generate_exp_ddcrp
 from processes.poisson import poisson_process
 
-RATE = 1.0
-INTENSITY = 10.0
+RATE = 1.
+INTENSITY = 7.0
 DECAY = 10.0
 time_sequence = poisson_process(
     rate=RATE,
@@ -252,7 +269,8 @@ sequence = generate_exp_ddcrp(
 dt = time.time() - t0
 print(f"Simulated in {dt}")
 
-plt.hist(sequence)
+plt.hist(sequence, bins=50)
+order_histogram(sequence, alpha=0.5)
 plt.xticks(rotation = 75)
 plt.title(f'DDCRP samples distribution with intensity {INTENSITY}')
 
