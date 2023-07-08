@@ -2,7 +2,7 @@
 import os
 import pytest
 from data_generation import constants
-from data_generation.data_generation import generate_dataset
+from data_generation.data_generation import generate_dataset, generate_ddcrp_dataset
 from utils import create_results_folder, get_baseline_folder, compare_datasets
 
 SEED = 0
@@ -34,6 +34,32 @@ def test_data_generation(test_name, source_intensities, source_discounts):
         destination_discount=0.25,
         source_intensities=source_intensities,
         source_discounts=source_discounts,
+        node_names=constants.computer_names,
+        seed=SEED,
+        discretize_time=False,
+        file_name=results_file)
+    compare_datasets(baseline_file, results_file)
+
+@pytest.mark.parametrize("test_name, source_intensities",
+                         [
+                             ("data_gen_ddcrp_const_source_params", 2.0),
+                             ("data_gen_ddcrp_random_source_params",
+                              random_source_intensities)
+                         ]
+)
+def test_ddcrp_data_generation(test_name, source_intensities):
+    """Function to test data generation"""
+    file_name = f'{test_name}.txt'
+    baseline_file = os.path.join(get_baseline_folder(test_name), file_name)
+    results_file = os.path.join(create_results_folder(test_name), file_name)
+    _ = generate_ddcrp_dataset(
+        max_time=constants.MAX_TIME,
+        period=constants.PERIOD,
+        n_nodes=constants.NNODES,
+        destination_intensity=7.0,
+        destination_discount=0.25,
+        source_intensities=source_intensities,
+        source_decay=constants.PERIOD,
         node_names=constants.computer_names,
         seed=SEED,
         discretize_time=False,
