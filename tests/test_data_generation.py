@@ -2,8 +2,10 @@
 import os
 import pytest
 from data_generation import constants
-from data_generation.data_generation import generate_dataset, generate_ddcrp_dataset
-from utils import create_results_folder, get_baseline_folder, compare_datasets
+from data_generation.data_generation import generate_dataset, generate_ddcrp_dataset, save_dataset
+from data_generation.dataset_operations import join_datasets_and_sort
+from utils import create_results_folder, get_baseline_folder, compare_datasets, load_dataset
+from data_generation.lateral_movement import generate_lateral_movement, LateralMovementType
 
 SEED = 0
 
@@ -64,4 +66,44 @@ def test_ddcrp_data_generation(test_name, source_intensities):
         seed=SEED,
         discretize_time=False,
         file_name=results_file)
+    compare_datasets(baseline_file, results_file)
+
+@pytest.mark.parametrize("test_name, lm_type",
+                         [
+                             ("data_gen_random_walk_lateral", "random_walk"),
+                             ("data_gen_longhest_path_lateral", "longhest_path")
+                         ]
+)
+def test_lateral_movement_generation(test_name, lm_type):
+    """Function to test lateral movement generation"""
+    file_name = f'{test_name}.txt'
+    baseline_file = os.path.join(get_baseline_folder(test_name), file_name)
+    results_file = os.path.join(create_results_folder(test_name), file_name)
+    # Load dataset on whcih to superimpose lateral movement
+    normal_dataset = load_dataset(os.path.join(get_baseline_folder(test_name), "base_dataset.txt"))
+    max_time = float(normal_dataset[-1][0])
+    mid_point = len(normal_dataset) // 2
+    mid_time = float(normal_dataset[mid_point][0])
+    graph_history_start = mid_point - min(1000, len(normal_dataset[:mid_point]))
+    edge_list = [(i[1], i[2]) for i in normal_dataset[graph_history_start:mid_point]]
+    if lm_type == "longhest_path":
+        lm_dataset = generate_lateral_movement(
+            edge_list=edge_list,
+            time_interval=[mid_time, min(mid_time + 10, max_time)],
+            rate=10.0,
+            typology=LateralMovementType(n_attempts=20),
+            target_type="low-traffic",
+            gen=0)
+    elif lm_type == "random_walk":
+        lm_dataset = generate_lateral_movement(
+            edge_list=edge_list,
+            time_interval=[mid_time, min(mid_time + 10, max_time)],
+            rate=10.0,
+            typology=LateralMovementType(rw_steps=5, rw_num=5, rw_reset=False),
+            target_type="low-traffic",
+            gen=0)
+    else:
+        NotImplementedError("Option not available")
+    full_dataset = join_datasets_and_sort(normal_dataset, lm_dataset)
+    save_dataset(full_dataset, file_name=results_file)
     compare_datasets(baseline_file, results_file)

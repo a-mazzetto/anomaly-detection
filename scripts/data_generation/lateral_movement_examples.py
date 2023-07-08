@@ -32,7 +32,7 @@ edge_list = [(i[1], i[2]) for i in dataset]
 from data_generation.lateral_movement import generate_lateral_movement, LateralMovementType
 
 # Improperly using the whole dataset to learn the graph
-lm_time, lm_source, lm_target = generate_lateral_movement(
+lm_dataset = generate_lateral_movement(
         edge_list=edge_list,
         time_interval=[20, 60],
         rate=10.0,
@@ -41,7 +41,7 @@ lm_time, lm_source, lm_target = generate_lateral_movement(
         gen=0)
 
 # Improperly using the whole dataset to learn the graph
-lm_time_1, lm_source_1, lm_target_1 = generate_lateral_movement(
+lm_dataset_1 = generate_lateral_movement(
         edge_list=edge_list,
         time_interval=[20, 60],
         rate=10.0,
@@ -49,4 +49,8 @@ lm_time_1, lm_source_1, lm_target_1 = generate_lateral_movement(
         target_type="low-traffic",
         gen=0)
 
+# %% Join dataset
+from data_generation.dataset_operations import join_datasets_and_sort
+
+join_datasets_and_sort(dataset, lm_dataset_1)
 # %%

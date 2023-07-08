@@ -1,11 +1,13 @@
 """Script to simulate lateral movement in the network"""
 from typing import Union, List, Optional
 from collections import Counter
+from warning import warn
 import random
 import numpy as np
 from numpy.random._generator import Generator
 from igraph import Graph, set_random_number_generator
 from processes.poisson import poisson_process
+from data_generation.data_generation import create_and_save_dataset
 
 class LateralMovementType():
     """Parametrize lateral movement"""
@@ -29,8 +31,14 @@ def generate_lateral_movement(
         rate: float,
         typology: LateralMovementType,
         target_type: Optional[str]="low-traffic",
-        gen: Optional[Union[int, Generator]]=None):
-    """Generate lateral movement data"""
+        gen: Optional[Union[int, Generator]]=None,
+        discretize_time: bool=False,
+        file_name: Optional[str]=None):
+    """Generate lateral movement data
+    
+    Output parameters
+    :param dicretize_time: a posteriory, only in the file
+    :param file_name: save to file if filename present"""
     t0, t1 = time_interval
     times = t0 + poisson_process(
         rate=rate,
@@ -43,13 +51,15 @@ def generate_lateral_movement(
         target_type=target_type,
         gen=gen)
     if typology.lm_type == "random_walk":
+        warn("Need to deal with seed")
         source_seq, target_seq = random_walk_lateral_movement(
             graph=graph,
             endpoints=endpoints,
             rw_steps=typology.rw_steps,
             rw_num=typology.rw_num,
             rw_reset=typology.rw_reset,
-            max_len=len(times)
+            max_len=len(times),
+            seed=gen
         )
     elif typology.lm_type == "longest_path":
         source_seq, target_seq = longets_path_stubborn_lateral_movement(
@@ -62,7 +72,13 @@ def generate_lateral_movement(
     # Truncate times in case the target was reached earlier than maximum time budget
     if len(times) > len(source_seq):
         times = times[:len(source_seq)]
-    return times, source_seq, target_seq
+    return create_and_save_dataset(
+        times=times,
+        sources=source_seq,
+        destinations=target_seq,
+        anomaly=np.ones(shape=len(times)),
+        discretize_time=discretize_time,
+        file_name=file_name)
 
 # Helper functions
 

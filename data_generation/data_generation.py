@@ -210,8 +210,12 @@ def create_and_save_dataset(times, destinations, sources, anomaly, discretize_ti
         times = np.floor(times).astype(int)
     dataset = list(zip(times, sources, destinations, anomaly.astype(int)))
     # Save dataset if required
+    save_dataset(dataset, file_name=file_name)
+    return dataset
+
+def save_dataset(dataset, file_name):
+    """save dataset to file"""
     if file_name is not None:
         with open(file_name, 'w', encoding='utf-8') as file:
             for line in dataset:
                 file.write('\t'.join(str(s) for s in line) + '\n')
-    return dataset
