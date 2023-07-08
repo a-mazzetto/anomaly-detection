@@ -1,7 +1,7 @@
 """Script to simulate lateral movement in the network"""
 from typing import Union, List, Optional
 from collections import Counter
-from warning import warn
+from warnings import warn
 import random
 import numpy as np
 from numpy.random._generator import Generator
