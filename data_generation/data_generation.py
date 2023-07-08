@@ -49,8 +49,9 @@ def generate_dataset(
         discounts=source_discounts, intensities=source_intensities,
         node_names=node_names, destinations=destinations, gen=gen)
     # Create dataset
-    dataset = create_and_save_dataset(times=times, destinations=destinations, sources=sources,
-                                      discretize_time=discretize_time, file_name=file_name)
+    dataset = create_and_save_dataset(
+        times=times, destinations=destinations, sources=sources, anomaly=np.zeros_like(times),
+        discretize_time=discretize_time, file_name=file_name)
     return dataset, source_intensity_vector, source_discount_vector
 
 def generate_ddcrp_dataset(
@@ -97,8 +98,9 @@ def generate_ddcrp_dataset(
         intensities=source_intensities, decay=source_decay, node_names=node_names,
         destinations=destinations, times=times, gen=gen)
     # Create dataset
-    dataset = create_and_save_dataset(times=times, destinations=destinations, sources=sources,
-                                      discretize_time=discretize_time, file_name=file_name)
+    dataset = create_and_save_dataset(
+        times=times, destinations=destinations, sources=sources, anomaly=np.zeros_like(times),
+        discretize_time=discretize_time, file_name=file_name)
     return dataset, source_intensity_vector
 
 # Helper functions
@@ -202,11 +204,11 @@ def generate_ddcrp_source_sequence(intensities, decay, node_names, destinations,
     assert all(len(i) == 0 for i in link_dict.values()), 'All sources should be consumed by now!'
     return sequence, source_intensity_vector
 
-def create_and_save_dataset(times, destinations, sources, discretize_time, file_name):
+def create_and_save_dataset(times, destinations, sources, anomaly, discretize_time, file_name):
     """Helper function to create and save dataset"""
     if discretize_time:
         times = np.floor(times).astype(int)
-    dataset = list(zip(times, sources, destinations))
+    dataset = list(zip(times, sources, destinations, anomaly.astype(int)))
     # Save dataset if required
     if file_name is not None:
         with open(file_name, 'w', encoding='utf-8') as file:
