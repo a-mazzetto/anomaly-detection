@@ -48,3 +48,66 @@ def dirichlet_est_pars(meas_kn, n, n_nodes):
     # Estimate parameters under approximation `Method 2` proposed in the paper
     alpha_hat = kn_hat / np.log(n)
     return alpha_hat
+
+class ForgettingFactorsMean():
+    """Forgetting Factors estimate of Mean"""
+    def __init__(self, lam, keep_hist=False, num_0=0, den_0=0):
+        """Forgetting Factor Initialization"""
+        assert lam >=0 and lam <= 1, "Lambda must be in [0, 1]"
+        self.lam = lam
+        self.keep_hist = keep_hist
+        self.reset(num_0, den_0)
+
+    def reset(self, num_0=0, den_0=0):
+        """Reset"""
+        self.num = num_0
+        self.den = den_0
+        self.n = 0
+        if self.keep_hist:
+            self.hist = np.ndarray(shape=(0,))
+        else:
+            self.hist = None
+            
+
+    def update(self, num, den):
+        """Update"""
+        assert den > 0, "Denominator must be positive"
+        self.num = self.lam * self.num + num
+        if self.den > 0:
+            self.den = self.lam * self.den + den
+        else:
+            self.den = den
+        self.n += 1
+        if self.keep_hist:
+            self.hist = np.append(self.hist, self.mean)
+    
+    @property
+    def mean(self):
+        return self.num / self.den
+
+def poisson_process_lam_est(
+        sequence,
+        interval=None,
+        forg_factor=1,
+        num_0=0,
+        den_0=0):
+    """Lambda parameter estimation for Poisson Process.
+    
+    :param sequence: time sequence
+    :param interval: aggregation interval
+    :parameter forg_factor: forgetting factors weight (set to 1 for
+                            normal mean)"""
+    if interval is not None:
+        counts, bins = np.histogram(
+            sequence,
+            bins = np.arange(min(sequence), max(sequence), 1))
+    else:
+        if np.any(np.diff(sequence) == 0):
+            raise ValueError("Coincident times. Consider specifying interval")
+        counts = np.ones_like(sequence[1:])
+        bins = sequence
+    lam = ForgettingFactorsMean(lam=forg_factor, keep_hist=True)
+    lam.reset(num_0=num_0, den_0=den_0)
+    for _idx, _count in enumerate(counts):
+        lam.update(_count, bins[_idx + 1] - bins[_idx])
+    return bins[1:], lam.hist
