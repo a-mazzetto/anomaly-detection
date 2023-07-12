@@ -4,6 +4,7 @@ import os
 from collections import Counter
 import numpy as np
 from scipy.stats import beta
+import subprocess
 import matplotlib.pylab as plt
 from input_parameters import *
 from parameter_estimation.parameter_estimation import pitman_yor_est_pars, dirichlet_est_pars
@@ -93,5 +94,14 @@ with open(x_given_y_parameters_file, "w", encoding="utf-8") as file:
     else:
         for line in zip(dest_list, dest_alpha.astype(str)):
             file.write("\t".join(line) + "\n")
+
+# Sort file
+completed = subprocess.run(["powershell", "-Command",
+    f"Get-Content {x_given_y_parameters_file} | Sort-Object | Set-Content -Path {x_given_y_parameters_file}"],
+    capture_output=True)
+if completed.returncode != 0:
+    print("An error occured: %s", completed.stderr)
+else:
+    print("Command executed successfully!")
 
 # %%
