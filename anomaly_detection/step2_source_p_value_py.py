@@ -1,15 +1,25 @@
 """Calculate p-value of destination"""
 # %%
 import os
+import json
+import argparse
 import subprocess
-from input_parameters import *
 from processes.pitman_yor_pvalue import PitmanYorPValue
 from pvalues.combiners import fisher_pvalues_combiner
 
-x_given_y_params_filepath = os.path.join(RESULTS_FOLDER, X_GIVEN_Y_PARAMETERS_FILENAME)
+parser = argparse.ArgumentParser(description='Parameter estimation')
+parser.add_argument('settings', type=str, nargs='+', help='File with settings')
+args = parser.parse_args()
+with open(args.settings[0], "r", encoding="utf-8") as file:
+    settings = json.load(file)
+
+input_file = settings["phase1"]["dest_file"]
+output_file = settings["phase2"]["dest_file"]
+params_file = settings["phase0"]["x_y_params_file"]
+n_nodes = settings["info"]["n_nodes"]
 
 def look_for_params(dest_query):
-    with open(x_given_y_params_filepath, "r", encoding="utf-8") as file:
+    with open(params_file, "r", encoding="utf-8") as file:
         for line in file:
             dest, alpha, d = line.strip().split("\t")
             if dest == dest_query:
@@ -18,14 +28,14 @@ def look_for_params(dest_query):
 
 current_dest = ""
 
-with open(SOURCE_GIVEN_DEST_PVALUES_FILEPATH_PY, "w", encoding="utf-8") as out_file:
-    with open(DESTINATION_PVALUES_FILEPATH, "r", encoding="utf-8") as file:
+with open(output_file, "w", encoding="utf-8") as out_file:
+    with open(input_file, "r", encoding="utf-8") as file:
         for line in file:
             dest, time, source, anomaly, y_pvalue = line.strip().split("\t")
             if dest != current_dest:
                 current_dest = dest
                 alpha, d = look_for_params(dest)
-                py_pvalue = PitmanYorPValue(alpha=float(alpha), d=float(d), n_nodes=N_NODES)
+                py_pvalue = PitmanYorPValue(alpha=float(alpha), d=float(d), n_nodes=n_nodes)
             x_given_y_pvalue = py_pvalue.pvalue_and_update(source)
             # Combine p-values
             score = fisher_pvalues_combiner(float(y_pvalue), x_given_y_pvalue)
@@ -33,7 +43,7 @@ with open(SOURCE_GIVEN_DEST_PVALUES_FILEPATH_PY, "w", encoding="utf-8") as out_f
 
 # Sort file
 completed = subprocess.run(["powershell", "-Command",
-    f"Get-Content {SOURCE_GIVEN_DEST_PVALUES_FILEPATH_PY} | Sort-Object | Set-Content -Path {SOURCE_GIVEN_DEST_PVALUES_FILEPATH_PY}"],
+    f"Get-Content {output_file} | Sort-Object | Set-Content -Path {output_file}"],
     capture_output=True)
 if completed.returncode != 0:
     print("An error occured: %s", completed.stderr)

@@ -1,0 +1,32 @@
+{
+    "input": {
+        "filepath": "C:\\Users\\user\\git\\anomaly-detection\\.//data//auth.txt",
+        "filename": "auth"
+    },
+    "output": {
+        "root": "C:\\Users\\user\\git\\anomaly-detection\\.//data//auth//"
+    },
+    "info": {
+        "n_nodes": 100,
+        "ddcrp": false
+    },
+    "phase0": {
+        "tstart": 0,
+        "tend": 100000000.0,
+        "threshold": 30,
+        "y_params_file": "C:\\Users\\user\\git\\anomaly-detection\\.//data//auth//phase0_y_params.txt",
+        "x_y_params_file": "C:\\Users\\user\\git\\anomaly-detection\\.//data//auth//phase0_x_y_params.txt"
+    },
+    "phase1": {
+        "dest_file": "C:\\Users\\user\\git\\anomaly-detection\\.//data//auth//phase1_dest_pval.txt"
+    },
+    "phase2": {
+        "dest_file": "C:\\Users\\user\\git\\anomaly-detection\\.//data//auth//phase2_source_pval.txt"
+    },
+    "phase3": {
+        "dest_file": "C:\\Users\\user\\git\\anomaly-detection\\.//data//auth//phase3_link_score.txt"
+    },
+    "phase4": {
+        "dest_file": "C:\\Users\\user\\git\\anomaly-detection\\.//data//auth//phase_4_source_score.txt"
+    }
+}

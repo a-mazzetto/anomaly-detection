@@ -1,0 +1,45 @@
+"""Anomaly detection parametrization"""
+import os
+
+def create_settings(
+        rel_input_file,
+        rel_output_folder,
+        n_nodes,
+        param_est_interval = [0, 1e8],
+        param_est_threshold = 30,
+        ddcrp=False):
+    """Create settings for anomaly detection job"""
+    settings = {}
+    settings["input"] = {}
+    settings["input"]["filepath"] = os.path.join(os.getcwd(), rel_input_file)
+    settings["input"]["filename"] = ".".join(
+        os.path.basename(rel_input_file).split(".")[:-1])
+    settings["output"] = {}
+    settings["output"]["root"] = os.path.join(os.getcwd(), rel_output_folder)
+    if not os.path.exists(settings["output"]["root"]):
+        os.mkdir(settings["output"]["root"])
+    settings["info"] = {}
+    settings["info"]["n_nodes"] = n_nodes
+    settings["info"]["ddcrp"] = ddcrp
+    settings["phase0"] = {}
+    settings["phase0"]["tstart"] = param_est_interval[0]
+    settings["phase0"]["tend"] = param_est_interval[1]
+    settings["phase0"]["threshold"] = param_est_threshold
+    settings["phase0"]["y_params_file"] = os.path.join(settings["output"]["root"], "phase0_y_params.txt")
+    settings["phase0"]["x_y_params_file"] = os.path.join(settings["output"]["root"], "phase0_x_y_params.txt")
+    settings["phase1"] = {}
+    settings["phase1"]["dest_file"] = os.path.join(settings["output"]["root"], "phase1_dest_pval.txt")
+    settings["phase2"] = {}
+    settings["phase2"]["dest_file"] = os.path.join(settings["output"]["root"], "phase2_source_pval.txt")
+    settings["phase3"] = {}
+    settings["phase3"]["dest_file"] = os.path.join(settings["output"]["root"], "phase3_link_score.txt")
+    settings["phase4"] = {}
+    settings["phase4"]["dest_file"] = os.path.join(settings["output"]["root"], "phase_4_source_score.txt")
+    return settings
+
+if __name__ == "__main__":
+    import json
+    from data_generation.constants import NNODES
+    settings = create_settings(".//data//auth.txt", ".//data//auth//", NNODES)
+    with open(".//data//auth//settings.json", "w", encoding="utf-8") as file:
+        json.dump(settings, file, indent=4)
