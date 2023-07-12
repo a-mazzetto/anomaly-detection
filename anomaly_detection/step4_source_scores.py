@@ -23,13 +23,13 @@ def source_scores(user_args=None):
                 source, _, score, _ = line.strip().split("\t")
                 if source != current_source:
                     if len(current_source) > 0:
-                        source_score = fisher_pvalues_combiner(*current_source_scores)
-                        out_file.write("\t".join([source, str(source_score)]) + "\n")
+                        current_source_score = fisher_pvalues_combiner(*current_source_scores)
+                        out_file.write("\t".join([current_source, str(current_source_score)]) + "\n")
                     current_source = source
                     current_source_scores = []
                 current_source_scores.append(float(score))
-        source_score = fisher_pvalues_combiner(*current_source_scores)
-        out_file.write("\t".join([source, str(source_score)]) + "\n")
+        current_source_score = fisher_pvalues_combiner(*current_source_scores)
+        out_file.write("\t".join([current_source, str(current_source_score)]) + "\n")
 
     # Output file to be sorted by score
 
