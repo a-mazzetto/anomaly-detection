@@ -81,8 +81,10 @@ if not np.all(np.isnan(dest_d)):
     dest_d[np.isnan(dest_d)] = np.nanmedian(dest_d)
 
 # Save data to file
-y_parameters_file = os.path.join(RESULTS_FOLDER, "y_params.txt")
-x_given_y_parameters_file = os.path.join(RESULTS_FOLDER, "x_given_y_params.txt")
+y_parameters_file = os.path.join(
+    RESULTS_FOLDER, Y_PARAMETERS_FILENAME)
+x_given_y_parameters_file = os.path.join(
+    RESULTS_FOLDER, X_GIVEN_Y_PARAMETERS_FILENAME)
 
 with open(y_parameters_file, "w", encoding="utf-8") as file:
     file.write("\t".join([str(i) for i in destination_process_params]) + "\n")
