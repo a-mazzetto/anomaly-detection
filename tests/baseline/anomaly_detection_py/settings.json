@@ -1,10 +1,10 @@
 {
     "input": {
-        "filepath": "C:\\Users\\user\\git\\anomaly-detection\\.//data//auth.txt",
+        "filepath": "c:\\Users\\user\\git\\anomaly-detection\\tests\\baseline\\anomaly_detection_py\\auth.txt",
         "filename": "auth"
     },
     "output": {
-        "root": "C:\\Users\\user\\git\\anomaly-detection\\.//data//auth//"
+        "root": "c:\\Users\\user\\git\\anomaly-detection\\tests\\results\\anomaly_detection_py"
     },
     "info": {
         "n_nodes": 100,
@@ -14,19 +14,19 @@
         "tstart": 0,
         "tend": 100000000.0,
         "threshold": 30,
-        "y_params_file": "C:\\Users\\user\\git\\anomaly-detection\\.//data//auth//phase0_y_params.txt",
-        "x_y_params_file": "C:\\Users\\user\\git\\anomaly-detection\\.//data//auth//phase0_x_y_params.txt"
+        "y_params_file": "c:\\Users\\user\\git\\anomaly-detection\\tests\\results\\anomaly_detection_py\\phase0_y_params.txt",
+        "x_y_params_file": "c:\\Users\\user\\git\\anomaly-detection\\tests\\results\\anomaly_detection_py\\phase0_x_y_params.txt"
     },
     "phase1": {
-        "dest_file": "C:\\Users\\user\\git\\anomaly-detection\\.//data//auth//phase1_dest_pval.txt"
+        "dest_file": "c:\\Users\\user\\git\\anomaly-detection\\tests\\results\\anomaly_detection_py\\phase1_dest_pval.txt"
     },
     "phase2": {
-        "dest_file": "C:\\Users\\user\\git\\anomaly-detection\\.//data//auth//phase2_source_pval.txt"
+        "dest_file": "c:\\Users\\user\\git\\anomaly-detection\\tests\\results\\anomaly_detection_py\\phase2_source_pval.txt"
     },
     "phase3": {
-        "dest_file": "C:\\Users\\user\\git\\anomaly-detection\\.//data//auth//phase3_link_score.txt"
+        "dest_file": "c:\\Users\\user\\git\\anomaly-detection\\tests\\results\\anomaly_detection_py\\phase3_link_score.txt"
     },
     "phase4": {
-        "dest_file": "C:\\Users\\user\\git\\anomaly-detection\\.//data//auth//phase_4_source_score.txt"
+        "dest_file": "c:\\Users\\user\\git\\anomaly-detection\\tests\\results\\anomaly_detection_py\\phase_4_source_score.txt"
     }
 }

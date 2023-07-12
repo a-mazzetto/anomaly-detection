@@ -2,8 +2,8 @@
 import os
 
 def create_settings(
-        rel_input_file,
-        rel_output_folder,
+        input_file,
+        output_folder,
         n_nodes,
         param_est_interval = [0, 1e8],
         param_est_threshold = 30,
@@ -11,11 +11,11 @@ def create_settings(
     """Create settings for anomaly detection job"""
     settings = {}
     settings["input"] = {}
-    settings["input"]["filepath"] = os.path.join(os.getcwd(), rel_input_file)
+    settings["input"]["filepath"] = input_file
     settings["input"]["filename"] = ".".join(
-        os.path.basename(rel_input_file).split(".")[:-1])
+        os.path.basename(input_file).split(".")[:-1])
     settings["output"] = {}
-    settings["output"]["root"] = os.path.join(os.getcwd(), rel_output_folder)
+    settings["output"]["root"] = output_folder
     if not os.path.exists(settings["output"]["root"]):
         os.mkdir(settings["output"]["root"])
     settings["info"] = {}
