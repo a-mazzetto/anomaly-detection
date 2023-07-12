@@ -40,6 +40,19 @@ def create_settings(
 if __name__ == "__main__":
     import json
     from data_generation.constants import NNODES
+    from anomaly_detection.step0_preprocessing import preprocessing
+    from anomaly_detection.step1_destination_p_value import destination_process
+    from anomaly_detection.step2_source_p_value_py import source_conditional_process
+    from anomaly_detection.step3_link_scores import link_scores
+    from anomaly_detection.step4_source_scores import source_scores
+
     settings = create_settings(".//data//auth.txt", ".//data//auth//", NNODES)
-    with open(".//data//auth//settings.json", "w", encoding="utf-8") as file:
+    settings_filename = ".//data//auth//settings.json"
+    with open(settings_filename, "w", encoding="utf-8") as file:
         json.dump(settings, file, indent=4)
+
+    preprocessing([f"{settings_filename}"])
+    destination_process([f"{settings_filename}"])
+    source_conditional_process([f"{settings_filename}"])
+    link_scores([f"{settings_filename}"])
+    source_scores([f"{settings_filename}"])
