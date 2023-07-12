@@ -47,4 +47,4 @@ def compare_source_score_files(test, ref):
     base_df = pd.read_table(ref, index_col=0, names=["score"])
     base_df.score = base_df.score.astype(float)
     assert np.all(test_df.index == base_df.index), "Index of output different from reference"
-    assert np.testing.assert_allclose(test_df.score, base_df.score), "Scores different from baseline"
+    assert np.allclose(test_df.score.values, base_df.score.values), "Scores different from baseline"
