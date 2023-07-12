@@ -5,18 +5,16 @@ from collections import Counter
 import numpy as np
 from scipy.stats import beta
 import matplotlib.pylab as plt
+from input_parameters import *
 from parameter_estimation.parameter_estimation import pitman_yor_est_pars, dirichlet_est_pars
 
-FILE = os.path.join(os.getcwd(), r"data\auth_ddcrp.txt")
-TSTART = 0
-TEND = 1e8
-N_NODES = 1000
-THERSHOLD = 30
-DDCRP = True
+TSTART = PREPROCESSING_TSTART
+TEND = PREPROCESSING_TEND
+THERSHOLD = PREPROCESSING_THERSHOLD
 
 destination_counter = Counter()
 source_counters = {}
-with open(FILE, "r", encoding="utf-8") as file:
+with open(FILE_PATH, "r", encoding="utf-8") as file:
     for line in file:
         time, source, dest, _ = line.strip().split("\t")
         time = float(time)
@@ -74,20 +72,21 @@ if not np.all(np.isnan(dest_d)):
     x_plot = np.linspace(0, 1, 100)
     ax[1].plot(x_plot, beta(a=2.0, b=5.0).pdf(x_plot), linestyle="--", color="red")
     ax[1].set_xlabel("$d$")
+fig.savefig(os.path.join(RESULTS_FOLDER, "preprocessing.pdf"))
 
-# Fill None
+# Fill NAN
 dest_alpha[np.isnan(dest_alpha)] = np.nanmedian(dest_alpha)
 if not np.all(np.isnan(dest_d)):
-    dest_d[np.isnan(dest_alpha)] = np.nanmedian(dest_d)
+    dest_d[np.isnan(dest_d)] = np.nanmedian(dest_d)
 
 # Save data to file
-parameters_file = os.path.join(
-    os.path.dirname(FILE),
-    os.path.basename(FILE).split(".")[0] +
-        "_params." +
-        os.path.basename(FILE).split(".")[1]
-)
-with open(parameters_file, "w", encoding="utf-8") as file:
+y_parameters_file = os.path.join(RESULTS_FOLDER, "y_params.txt")
+x_given_y_parameters_file = os.path.join(RESULTS_FOLDER, "x_given_y_params.txt")
+
+with open(y_parameters_file, "w", encoding="utf-8") as file:
+    file.write("\t".join([str(i) for i in destination_process_params]) + "\n")
+
+with open(x_given_y_parameters_file, "w", encoding="utf-8") as file:
     if not np.all(np.isnan(dest_d)):
         for line in zip(dest_list, dest_alpha.astype(str), dest_d.astype(str)):
             file.write("\t".join(line) + "\n")
