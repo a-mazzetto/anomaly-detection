@@ -42,9 +42,9 @@ def load_dataset(file):
 
 def compare_source_score_files(test, ref):
     """Compare text files"""
-    test_df = pd.read_table(test, index_col=0, names="score")
+    test_df = pd.read_table(test, index_col=0, names=["score"])
     test_df.score = test_df.score.astype(float)
-    base_df = pd.read_table(ref, index_col=0, names="score")
+    base_df = pd.read_table(ref, index_col=0, names=["score"])
     base_df.score = base_df.score.astype(float)
-    assert test_df.index == base_df.index, "Index of output different from reference"
+    assert np.all(test_df.index == base_df.index), "Index of output different from reference"
     assert np.testing.assert_allclose(test_df.score, base_df.score), "Scores different from baseline"
