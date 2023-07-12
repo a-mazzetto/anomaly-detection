@@ -24,3 +24,6 @@ DESTINATION_PVALUES_FILEPATH = os.path.join(RESULTS_FOLDER, "destination_py.txt"
 
 # Source PY
 SOURCE_GIVEN_DEST_PVALUES_FILEPATH_PY = os.path.join(RESULTS_FOLDER, "source_given_destination_py.txt")
+
+# Link score
+LINK_SCORE_FILEPATH = os.path.join(RESULTS_FOLDER, "link_scores.txt")
