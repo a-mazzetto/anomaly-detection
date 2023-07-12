@@ -27,3 +27,6 @@ SOURCE_GIVEN_DEST_PVALUES_FILEPATH_PY = os.path.join(RESULTS_FOLDER, "source_giv
 
 # Link score
 LINK_SCORE_FILEPATH = os.path.join(RESULTS_FOLDER, "link_scores.txt")
+
+# Node score
+SOURCE_SCORE_FILEPATH = os.path.join(RESULTS_FOLDER, "source_scores.txt")
