@@ -18,3 +18,6 @@ PREPROCESSING_TEND = 1e8
 PREPROCESSING_THERSHOLD = 30
 Y_PARAMETERS_FILENAME = "y_params.txt"
 X_GIVEN_Y_PARAMETERS_FILENAME = "x_given_y_params.txt"
+
+# Destination PY
+DESTINATION_PVALUES_FILEPATH = os.path.join(RESULTS_FOLDER, "destination_py.txt")
