@@ -20,7 +20,7 @@ def source_scores(user_args=None):
     with open(output_file, "w", encoding="utf-8") as out_file:
         with open(input_file, "r", encoding="utf-8") as file:
             for line in file:
-                source, _, score = line.strip().split("\t")
+                source, _, score, _ = line.strip().split("\t")
                 if source != current_source:
                     if len(current_source) > 0:
                         source_score = fisher_pvalues_combiner(*current_source_scores)

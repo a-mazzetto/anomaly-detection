@@ -2,6 +2,7 @@
 # %%
 import json
 import argparse
+import numpy as np
 from pvalues.combiners import min_pvalue_combiner
 
 def link_scores(user_args = None):
@@ -16,21 +17,25 @@ def link_scores(user_args = None):
 
     current_link = ""
     current_link_scores = []
+    current_link_times = []
 
     with open(output_file, "w", encoding="utf-8") as out_file:
         with open(input_file, "r", encoding="utf-8") as file:
             for line in file:
-                link, _, _, _, _, score = line.strip().split("\t")
+                link, time, _, _, _, score = line.strip().split("\t")
                 if link != current_link:
                     source, dest = link.split("_")
                     if len(current_link) > 0:
                         link_score = min_pvalue_combiner(*current_link_scores)
-                        out_file.write("\t".join([source, dest, str(link_score)]) + "\n")
+                        time_at_min = current_link_times[np.argmin(current_link_scores)]
+                        out_file.write("\t".join([source, dest, str(link_score), str(time_at_min)]) + "\n")
                     current_link = link
                     current_link_scores = []
+                    current_link_times = []
                 current_link_scores.append(float(score))
+                current_link_times.append(float(time))
         link_score = min_pvalue_combiner(*current_link_scores)
-        out_file.write("\t".join([source, dest, str(link_score)]) + "\n")
+        out_file.write("\t".join([source, dest, str(link_score), str(time_at_min)]) + "\n")
 
     # Output file already sorted
 
