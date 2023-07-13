@@ -74,7 +74,7 @@ for _time, _dest in zip(times, destinations):
 
 # %% Write to file
 
-with open('../../data/dataset.txt', 'w', encoding='utf-8') as file:
+with open('./data/dataset.txt', 'w', encoding='utf-8') as file:
     for line in dataset:
         file.write(' '.join(str(s) for s in line) + '\n')
 
@@ -101,8 +101,8 @@ generate_dataset(
     source_discounts=0.5,
     node_names=computer_names,
     seed=0,
-    dicretize_time=True,
-    file_name="../../data/dataset_0.txt")
+    discretize_time=True,
+    file_name="./data/dataset_0.txt")
 
 # %% Generate DDCRP
 from data_generation.data_generation import generate_ddcrp_dataset
@@ -130,6 +130,6 @@ generate_ddcrp_dataset(
     node_names=computer_names,
     seed=0,
     discretize_time=True,
-    file_name="../../data/dataset_0.txt")
+    file_name="./data/dataset_0.txt")
 
 # %%

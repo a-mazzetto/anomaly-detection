@@ -7,7 +7,8 @@ def create_settings(
         n_nodes,
         param_est_interval = [0, 1e8],
         param_est_threshold = 30,
-        ddcrp=False):
+        ddcrp=False,
+        beta_ddcrp=None):
     """Create settings for anomaly detection job"""
     settings = {}
     settings["input"] = {}
@@ -21,6 +22,7 @@ def create_settings(
     settings["info"] = {}
     settings["info"]["n_nodes"] = n_nodes
     settings["info"]["ddcrp"] = ddcrp
+    settings["info"]["beta_ddcrp"] = beta_ddcrp
     settings["phase0"] = {}
     settings["phase0"]["tstart"] = param_est_interval[0]
     settings["phase0"]["tend"] = param_est_interval[1]
@@ -56,3 +58,14 @@ if __name__ == "__main__":
     source_conditional_process([f"{settings_filename}"])
     link_scores([f"{settings_filename}"])
     source_scores([f"{settings_filename}"])
+
+    settings_ddcrp = create_settings(".//data//auth.txt", ".//data//auth_ddcrp//", NNODES, ddcrp=True, beta_ddcrp=12 * 60 * 60)
+    settings_filename_ddcrp = ".//data//auth_ddcrp//settings.json"
+    with open(settings_filename_ddcrp, "w", encoding="utf-8") as file:
+        json.dump(settings_ddcrp, file, indent=4)
+
+    preprocessing([f"{settings_filename_ddcrp}"])
+    destination_process([f"{settings_filename_ddcrp}"])
+    source_conditional_process([f"{settings_filename_ddcrp}"])
+    link_scores([f"{settings_filename_ddcrp}"])
+    source_scores([f"{settings_filename_ddcrp}"])

@@ -8,7 +8,8 @@
     },
     "info": {
         "n_nodes": 100,
-        "ddcrp": false
+        "ddcrp": false,
+        "beta_ddcrp": 3600
     },
     "phase0": {
         "tstart": 0,
