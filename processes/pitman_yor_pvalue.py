@@ -74,3 +74,48 @@ class PitmanYorPValue():
         pvalue = self.pvalue(x)
         self.update(x)
         return pvalue
+
+class StreamingPitmanYorPValue(PitmanYorPValue):
+    """Extends PitmanYorPValue as a streaming version"""
+    def __init__(self, twindow: float, alpha: float, d=float, n_nodes:int=0):
+        super().__init__(alpha=alpha, d=d, n_nodes=n_nodes)
+        self.twindow = twindow
+        self.queue = []
+
+    def reset(self):
+        super().reset()
+        self.queue = []
+
+    def drop_outdated(self, t):
+        """Removes old observations. Queue is (t, x)"""
+        while len(self.queue) > 0 and self.queue[0][0] < (t - self.twindow):
+            _, xold = self.queue.pop(0)
+            # Update posterior accordingly
+            self.n -= 1
+            if self.counter[xold] == 1:
+                _ = self.counter.pop(xold)
+            else:
+                self.counter[xold] -= 1
+            self.kn = len(self.counter)
+
+    def update(self, x, t):
+        """Extends by dropping old observations first"""
+        self.drop_outdated(t)
+        self.queue.append((t, x))
+        super().update(x=x)
+    
+    def pvalue(self, *_, **__):
+        raise NotImplementedError(("p-value query without updating the posterior "
+                                  "not implemented in the sequential case"))
+    
+    def _pvalue_internal(self, x):
+        return super().pvalue(x)
+    
+    def pvalue_and_update(self, x, t):
+        """Calcualte p-value, then update"""
+        self.drop_outdated(t)
+        pvalue = self._pvalue_internal(x)
+        # Updating performs a second elimination of old samples, but will find none as the
+        # postirior was already cleare of old observations
+        self.update(x, t)
+        return pvalue
