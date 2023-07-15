@@ -1,0 +1,37 @@
+{
+    "input": {
+        "filepath": "c:\\Users\\user\\git\\anomaly-detection\\tests\\baseline\\anomaly_detection_pois_py\\auth.txt",
+        "filename": "auth"
+    },
+    "output": {
+        "root": "c:\\Users\\user\\git\\anomaly-detection\\tests\\results\\anomaly_detection_pois_py"
+    },
+    "info": {
+        "n_nodes": 100,
+        "type": "POISSON+PY",
+        "stream_time_window": 3600,
+        "forgetting_factor": 0.99
+    },
+    "phase0": {
+        "tstart": 0,
+        "tend": 100000000.0,
+        "threshold": 30,
+        "y_params_file": "c:\\Users\\user\\git\\anomaly-detection\\tests\\results\\anomaly_detection_pois_py\\phase0_y_params.txt",
+        "x_y_params_file": "c:\\Users\\user\\git\\anomaly-detection\\tests\\results\\anomaly_detection_pois_py\\phase0_x_y_params.txt",
+        "pois_params_file": "c:\\Users\\user\\git\\anomaly-detection\\tests\\results\\anomaly_detection_pois_py\\phase0_pois_params.txt"
+    },
+    "phase1": {
+        "tstart": 0,
+        "tend": 100000000.0,
+        "dest_file": "c:\\Users\\user\\git\\anomaly-detection\\tests\\results\\anomaly_detection_pois_py\\phase1_dest_pval.txt"
+    },
+    "phase2": {
+        "dest_file": "c:\\Users\\user\\git\\anomaly-detection\\tests\\results\\anomaly_detection_pois_py\\phase2_source_pval.txt"
+    },
+    "phase3": {
+        "dest_file": "c:\\Users\\user\\git\\anomaly-detection\\tests\\results\\anomaly_detection_pois_py\\phase3_link_score.txt"
+    },
+    "phase4": {
+        "dest_file": "c:\\Users\\user\\git\\anomaly-detection\\tests\\results\\anomaly_detection_pois_py\\phase_4_source_score.txt"
+    }
+}

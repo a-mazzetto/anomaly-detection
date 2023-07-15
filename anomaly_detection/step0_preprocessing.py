@@ -8,7 +8,8 @@ import numpy as np
 from scipy.stats import beta
 import subprocess
 import matplotlib.pylab as plt
-from parameter_estimation.parameter_estimation import pitman_yor_est_pars, dirichlet_est_pars
+from parameter_estimation.parameter_estimation import pitman_yor_est_pars, dirichlet_est_pars, \
+    PoissonProcessRateEstimation
 
 def preprocessing(user_args=None):
     parser = argparse.ArgumentParser(description='Parameter estimation')
@@ -20,12 +21,17 @@ def preprocessing(user_args=None):
     input_file = settings["input"]["filepath"]
     output1_file = settings["phase0"]["y_params_file"]
     output2_file = settings["phase0"]["x_y_params_file"]
+    output3_file = settings["phase0"]["pois_params_file"]
     n_nodes = settings["info"]["n_nodes"]
     result_folder = settings["output"]["root"]
     process_type = settings["info"]["type"]
+    forgetting_factor = settings["info"]["forgetting_factor"]
     tstart = settings["phase0"]["tstart"]
     tend = settings["phase0"]["tend"]
     threshold = settings["phase0"]["threshold"]
+
+    if process_type == "POISSON_PY":
+        poisson_rate = PoissonProcessRateEstimation(forgetting_factor=forgetting_factor, t_start=tstart)
 
     destination_counter = Counter()
     source_counters = {}
@@ -44,6 +50,9 @@ def preprocessing(user_args=None):
                         source_counters[dest][source] = 1
                     else:
                         source_counters[dest][source] += 1
+                # Poisson process part
+                if process_type == "POISSON_PY":
+                    poisson_rate.update(t=time)
             if time > tend:
                 break
 
@@ -53,7 +62,7 @@ def preprocessing(user_args=None):
             meas_kn=len(destination_counter),
             n=sum(destination_counter.values()),
             n_nodes=n_nodes)
-    elif process_type in ("PY", "STREAM_PY", "POISSON+PY"):
+    elif process_type in ("PY", "STREAM_PY", "POISSON_PY"):
         destination_process_params = pitman_yor_est_pars(
             meas_kn=len(destination_counter),
             meas_h1n=sum(np.isclose(list(destination_counter.values()), 1)),
@@ -76,7 +85,7 @@ def preprocessing(user_args=None):
                     meas_kn=len(counter),
                     n=sum(counter.values()),
                     n_nodes=n_nodes)
-            elif process_type in ("PY", "STREAM_PY", "POISSON+PY"):
+            elif process_type in ("PY", "STREAM_PY", "POISSON_PY"):
                 dest_alpha[i], dest_d[i] = pitman_yor_est_pars(
                     meas_kn=len(counter),
                     meas_h1n=sum(np.isclose(list(counter.values()), 1)),
@@ -120,6 +129,13 @@ def preprocessing(user_args=None):
             for line in zip(dest_list, dest_alpha.astype(str)):
                 file.write("\t".join(line) + "\n")
             file.write("\t".join(["average", np.nanmedian(dest_alpha).astype(str)]) + "\n")
+
+    # Save Poisson learning
+    if process_type == "POISSON_PY":
+        with open(output3_file, "w", encoding="utf-8") as file:
+            # Save numerator, denominator and last time of learned sequence
+            file.write("\t".join([str(i) for i in \
+                [poisson_rate.mean.num, poisson_rate.mean.den, poisson_rate.t_old]]) + "\n")
 
     # Sort file
     completed = subprocess.run(["powershell", "-Command",

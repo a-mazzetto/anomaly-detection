@@ -25,6 +25,15 @@ class PitmanYorPValue():
             self.counter[x] = 1
         self.kn = len(self.counter)
 
+    def prob(self, x):
+        """Probability, useful for other applications"""
+        prob_0 = (self.alpha + self.kn * self.d) / (self.alpha + self.n) / self.n_nodes if self.n_nodes > 0 else 0
+        if x in self.counter:
+            prob = prob_0 + (self.counter[x] - self.d) / (self.alpha + self.n)
+        else:
+            prob = prob_0
+        return prob
+
     def _first_pvalue(self):
         """First p-value (n = 0)"""
         assert self.n == 0, "Enter this block only for the first p-value"
