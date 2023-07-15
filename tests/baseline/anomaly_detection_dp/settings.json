@@ -1,0 +1,35 @@
+{
+    "input": {
+        "filepath": "c:\\Users\\user\\git\\anomaly-detection\\tests\\baseline\\anomaly_detection_dp\\auth.txt",
+        "filename": "auth"
+    },
+    "output": {
+        "root": "c:\\Users\\user\\git\\anomaly-detection\\tests\\results\\anomaly_detection_dp"
+    },
+    "info": {
+        "n_nodes": 100,
+        "type": "DP",
+        "stream_time_window": 3600
+    },
+    "phase0": {
+        "tstart": 0,
+        "tend": 100000000.0,
+        "threshold": 30,
+        "y_params_file": "c:\\Users\\user\\git\\anomaly-detection\\tests\\results\\anomaly_detection_dp\\phase0_y_params.txt",
+        "x_y_params_file": "c:\\Users\\user\\git\\anomaly-detection\\tests\\results\\anomaly_detection_dp\\phase0_x_y_params.txt"
+    },
+    "phase1": {
+        "tstart": 0,
+        "tend": 100000000.0,
+        "dest_file": "c:\\Users\\user\\git\\anomaly-detection\\tests\\results\\anomaly_detection_dp\\phase1_dest_pval.txt"
+    },
+    "phase2": {
+        "dest_file": "c:\\Users\\user\\git\\anomaly-detection\\tests\\results\\anomaly_detection_dp\\phase2_source_pval.txt"
+    },
+    "phase3": {
+        "dest_file": "c:\\Users\\user\\git\\anomaly-detection\\tests\\results\\anomaly_detection_dp\\phase3_link_score.txt"
+    },
+    "phase4": {
+        "dest_file": "c:\\Users\\user\\git\\anomaly-detection\\tests\\results\\anomaly_detection_dp\\phase_4_source_score.txt"
+    }
+}

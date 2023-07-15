@@ -16,6 +16,8 @@ SEED = 0
                          [
                             ("anomaly_detection_py", "phase4.txt", "PY"),
                             ("anomaly_detection_ddcrp", "phase4.txt", "DDCRP"),
+                            ("anomaly_detection_streampy", "phase4.txt", "STREAM_PY"),
+                            ("anomaly_detection_dp", "phase4.txt", "DP"),
                          ]
 )
 def test_anomaly_detection_py(test_name, reference_file, process_type):
