@@ -52,7 +52,7 @@ def generate_dataset(
     dataset = create_and_save_dataset(
         times=times, destinations=destinations, sources=sources, anomaly=np.zeros_like(times),
         discretize_time=discretize_time, file_name=file_name)
-    return dataset, source_intensity_vector, source_discount_vector
+    return dataset, zip(np.unique(destinations), source_intensity_vector, source_discount_vector)
 
 def generate_ddcrp_dataset(
     max_time: float,
@@ -101,7 +101,7 @@ def generate_ddcrp_dataset(
     dataset = create_and_save_dataset(
         times=times, destinations=destinations, sources=sources, anomaly=np.zeros_like(times),
         discretize_time=discretize_time, file_name=file_name)
-    return dataset, source_intensity_vector
+    return dataset, zip(np.unique(destinations), source_intensity_vector)
 
 # Helper functions
 

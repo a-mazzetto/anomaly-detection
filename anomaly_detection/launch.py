@@ -55,27 +55,92 @@ if __name__ == "__main__":
     from anomaly_detection.step3_link_scores import link_scores
     from anomaly_detection.step4_source_scores import source_scores
 
-    settings = create_settings(".//data//auth.txt", ".//data//auth//", NNODES, process_type="PY",
-                               param_est_interval=[0, 24 * 60 * 60], test_interval=[24 * 60 * 60, 1e8])
-    settings_filename = ".//data//auth//settings.json"
+    USE_REAL_PARAMETERS = False
+
+    ##################
+    ### PITMAN-YOR ###
+    ##################
+    settings = create_settings("./data/dataset_002/auth.txt", "./data/dataset_002/PY/", NNODES, process_type="PY",
+                               param_est_interval=[0, 24 * 3600], test_interval=[24 * 3600, 1e8])
+    settings_filename = "./data/dataset_002/PY/settings.json"
     with open(settings_filename, "w", encoding="utf-8") as file:
         json.dump(settings, file, indent=4)
 
     preprocessing([f"{settings_filename}"])
+    if USE_REAL_PARAMETERS:
+        pass
     destination_process([f"{settings_filename}"])
     source_conditional_process([f"{settings_filename}"])
     link_scores([f"{settings_filename}"])
     source_scores([f"{settings_filename}"])
 
-    settings_ddcrp = create_settings(".//data//auth.txt", ".//data//auth_ddcrp//", NNODES, process_type="DDCRP",
-                                     param_est_interval=[0, 24 * 60 * 60], test_interval=[24 * 60 * 60, 1e8],
-                                     stream_time_window=12 * 60 * 60,)
-    settings_filename_ddcrp = ".//data//auth_ddcrp//settings.json"
+    ##################
+    ### DIRICHLET ###
+    ##################
+    settings_dp = create_settings("./data/dataset_002/auth.txt", "./data/dataset_002/DP/", NNODES, process_type="DP",
+                                  param_est_interval=[0, 24 * 3600], test_interval=[24 * 3600, 1e8])
+    settings_filename_dp = "./data/dataset_002/DP/settings.json"
+    with open(settings_filename_dp, "w", encoding="utf-8") as file:
+        json.dump(settings_dp, file, indent=4)
+
+    preprocessing([f"{settings_filename_dp}"])
+    if USE_REAL_PARAMETERS:
+        pass
+    destination_process([f"{settings_filename_dp}"])
+    source_conditional_process([f"{settings_filename_dp}"])
+    link_scores([f"{settings_filename_dp}"])
+    source_scores([f"{settings_filename_dp}"])
+
+    #############
+    ### DDCRP ###
+    #############
+    settings_ddcrp = create_settings("./data/dataset_002/auth.txt", "./data/dataset_002/DDCRP/", NNODES, process_type="DDCRP",
+                                     param_est_interval=[0, 24 * 3600], test_interval=[24 *3600, 1e8],
+                                     stream_time_window=12 * 3600,)
+    settings_filename_ddcrp = "./data/dataset_002/DDCRP/settings.json"
     with open(settings_filename_ddcrp, "w", encoding="utf-8") as file:
         json.dump(settings_ddcrp, file, indent=4)
 
     preprocessing([f"{settings_filename_ddcrp}"])
+    if USE_REAL_PARAMETERS:
+        pass
     destination_process([f"{settings_filename_ddcrp}"])
     source_conditional_process([f"{settings_filename_ddcrp}"])
     link_scores([f"{settings_filename_ddcrp}"])
     source_scores([f"{settings_filename_ddcrp}"])
+
+    #################
+    ### STREAM-PY ###
+    #################
+    settings_stream_py = create_settings("./data/dataset_002/auth.txt", "./data/dataset_002/STREAMPY/", NNODES, process_type="STREAM_PY",
+                                         param_est_interval=[0, 24 * 3600], test_interval=[24 *3600, 1e8],
+                                         stream_time_window=12 * 3600,)
+    settings_filename_stream_py = "./data/dataset_002/STREAMPY/settings.json"
+    with open(settings_filename_stream_py, "w", encoding="utf-8") as file:
+        json.dump(settings_stream_py, file, indent=4)
+
+    preprocessing([f"{settings_filename_stream_py}"])
+    if USE_REAL_PARAMETERS:
+        pass
+    destination_process([f"{settings_filename_stream_py}"])
+    source_conditional_process([f"{settings_filename_stream_py}"])
+    link_scores([f"{settings_filename_stream_py}"])
+    source_scores([f"{settings_filename_stream_py}"])
+
+    #################
+    ### POISSON-PY ###
+    #################
+    settings_stream_pois_py = create_settings("./data/dataset_002/auth.txt", "./data/dataset_002/POISPY/", NNODES, process_type="POISSON_PY",
+                                         param_est_interval=[0, 24 * 3600], test_interval=[24 *3600, 1e8],
+                                         stream_time_window=12 * 3600,)
+    settings_filename_pois_py = "./data/dataset_002/POISPY/settings.json"
+    with open(settings_filename_pois_py, "w", encoding="utf-8") as file:
+        json.dump(settings_stream_pois_py, file, indent=4)
+
+    preprocessing([f"{settings_filename_pois_py}"])
+    if USE_REAL_PARAMETERS:
+        pass
+    destination_process([f"{settings_filename_pois_py}"])
+    source_conditional_process([f"{settings_filename_pois_py}"])
+    link_scores([f"{settings_filename_pois_py}"])
+    source_scores([f"{settings_filename_pois_py}"])
