@@ -28,4 +28,18 @@ lam_bins, lam_hist = poisson_process_lam_est(process, None, 0.97)
 
 plt.plot(lam_bins, rate0 + rate1 * np.sin(2 * np.pi / period * lam_bins))
 plt.plot(lam_bins, lam_hist)
+# %% Streaming version
+from parameter_estimation.parameter_estimation import PoissonProcessRateEstimation
+
+mean_est = PoissonProcessRateEstimation(forgetting_factor=0.99)
+mean_hist = np.ndarray(shape=(0,))
+
+for t in process[1:]:
+    mean_est.update(t)
+    mean_hist = np.append(mean_hist, mean_est.rate_est)
+
+plt.plot(lam_bins, rate0 + rate1 * np.sin(2 * np.pi / period * lam_bins))
+plt.plot(lam_bins, lam_hist)
+plt.plot(process[1:], mean_hist)
+
 # %%

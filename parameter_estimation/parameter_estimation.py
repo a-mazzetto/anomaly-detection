@@ -111,3 +111,26 @@ def poisson_process_lam_est(
     for _idx, _count in enumerate(counts):
         lam.update(_count, bins[_idx + 1] - bins[_idx])
     return bins[1:], lam.hist
+
+class PoissonProcessRateEstimation():
+    """Forgetting factors estimate of lambda for PP"""
+    def __init__(self, forgetting_factor, num_0=0, den_0=0, t_start=0):
+        """Initialize forgetting factors mean estimate, and time zero"""
+        self.mean = ForgettingFactorsMean(lam=forgetting_factor, num_0=num_0, den_0=den_0)
+        self.t_start = t_start
+        self.reset()
+
+    def reset(self):
+        """Reset"""
+        self.mean.reset()
+        self.t_old = self.t_start
+
+    def update(self, t):
+        """Update numerator and denominator using $\lambda(t) = \frac{1}{n \delta}
+        \sum_{i=1}^n N_i(l(t), l(t) + \delta)$ in its streaming version"""
+        self.mean.update(1, t - self.t_old)
+        self.t_old = t
+
+    @property
+    def rate_est(self):
+        return self.mean.mean
