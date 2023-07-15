@@ -4,6 +4,7 @@ import os
 import json
 import argparse
 import subprocess
+from warnings import showwarning
 from processes.pitman_yor_pvalue import PitmanYorPValue
 from processes.ddcrp_pvalue import DDCRPPValue
 from pvalues.combiners import fisher_pvalues_combiner
@@ -35,7 +36,14 @@ def source_conditional_process(user_args=None):
                         return alpha, d
                     else:
                         return alpha
-        raise ValueError(f"Row relative to {dest_query} not found")
+                elif dest == "average":
+                    avg_alpha = _input[1]
+                    avg_d = _input[2] if len(_input) > 2 else None
+        showwarning(f"Row relative to {dest_query} not found, using average", UserWarning, filename="look_for_params", lineno="")
+        if avg_d is not None:
+            return avg_alpha, avg_d
+        else:
+            return avg_alpha
 
     current_dest = ""
 

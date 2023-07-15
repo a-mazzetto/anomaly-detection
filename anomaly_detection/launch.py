@@ -7,6 +7,7 @@ def create_settings(
         n_nodes,
         param_est_interval = [0, 1e8],
         param_est_threshold = 30,
+        test_interval = [0, 1e8],
         ddcrp=False,
         beta_ddcrp=None):
     """Create settings for anomaly detection job"""
@@ -30,6 +31,8 @@ def create_settings(
     settings["phase0"]["y_params_file"] = os.path.join(settings["output"]["root"], "phase0_y_params.txt")
     settings["phase0"]["x_y_params_file"] = os.path.join(settings["output"]["root"], "phase0_x_y_params.txt")
     settings["phase1"] = {}
+    settings["phase1"]["tstart"] = test_interval[0]
+    settings["phase1"]["tend"] = test_interval[1]
     settings["phase1"]["dest_file"] = os.path.join(settings["output"]["root"], "phase1_dest_pval.txt")
     settings["phase2"] = {}
     settings["phase2"]["dest_file"] = os.path.join(settings["output"]["root"], "phase2_source_pval.txt")
@@ -48,7 +51,9 @@ if __name__ == "__main__":
     from anomaly_detection.step3_link_scores import link_scores
     from anomaly_detection.step4_source_scores import source_scores
 
-    settings = create_settings(".//data//auth.txt", ".//data//auth//", NNODES)
+    settings = create_settings(".//data//auth.txt", ".//data//auth//", NNODES,
+                               param_est_interval=[0, 24 * 60 * 60],
+                               test_interval=[24 * 60 * 60, 1e8])
     settings_filename = ".//data//auth//settings.json"
     with open(settings_filename, "w", encoding="utf-8") as file:
         json.dump(settings, file, indent=4)
@@ -59,7 +64,9 @@ if __name__ == "__main__":
     link_scores([f"{settings_filename}"])
     source_scores([f"{settings_filename}"])
 
-    settings_ddcrp = create_settings(".//data//auth.txt", ".//data//auth_ddcrp//", NNODES, ddcrp=True, beta_ddcrp=12 * 60 * 60)
+    settings_ddcrp = create_settings(".//data//auth.txt", ".//data//auth_ddcrp//", NNODES,
+                                     param_est_interval=[0, 24 * 60 * 60], ddcrp=True, beta_ddcrp=12 * 60 * 60,
+                                     test_interval=[24 * 60 * 60, 1e8])
     settings_filename_ddcrp = ".//data//auth_ddcrp//settings.json"
     with open(settings_filename_ddcrp, "w", encoding="utf-8") as file:
         json.dump(settings_ddcrp, file, indent=4)

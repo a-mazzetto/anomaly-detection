@@ -17,6 +17,8 @@ def destination_process(user_args=None):
     output_file = settings["phase1"]["dest_file"]
     params_file = settings["phase0"]["y_params_file"]
     n_nodes = settings["info"]["n_nodes"]
+    tstart = settings["phase1"]["tstart"]
+    tend = settings["phase1"]["tend"]
 
     with open(params_file, "r", encoding="utf-8") as file:
         count = 0
@@ -34,8 +36,11 @@ def destination_process(user_args=None):
         with open(input_file, "r", encoding="utf-8") as file:
             for line in file:
                 time, source, dest, anomaly = line.strip().split("\t")
-                pvalue = py_pvalue.pvalue_and_update(dest)
-                out_file.write("\t".join([dest, time, source, anomaly, str(pvalue)]) + "\n")
+                if float(time) > tstart:
+                    pvalue = py_pvalue.pvalue_and_update(dest)
+                    out_file.write("\t".join([dest, time, source, anomaly, str(pvalue)]) + "\n")
+                if float(time) > tend:
+                    break
 
     # Sort file
     completed = subprocess.run(["powershell", "-Command",

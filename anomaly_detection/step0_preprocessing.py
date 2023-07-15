@@ -102,9 +102,12 @@ def preprocessing(user_args=None):
         if not np.all(np.isnan(dest_d)):
             for line in zip(dest_list, dest_alpha.astype(str), dest_d.astype(str)):
                 file.write("\t".join(line) + "\n")
+            file.write("\t".join(["average", np.nanmedian(dest_alpha).astype(str),
+                                  np.nanmedian(dest_d).astype(str)]) + "\n")
         else:
             for line in zip(dest_list, dest_alpha.astype(str)):
                 file.write("\t".join(line) + "\n")
+            file.write("\t".join(["average", np.nanmedian(dest_alpha).astype(str)]) + "\n")
 
     # Sort file
     completed = subprocess.run(["powershell", "-Command",
