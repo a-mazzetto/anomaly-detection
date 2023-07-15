@@ -9,9 +9,10 @@ def create_settings(
         param_est_interval = [0, 1e8],
         param_est_threshold = 30,
         test_interval = [0, 1e8],
-        stream_time_window = None):
+        stream_time_window = None,
+        forgetting_factor = 0.99):
     """Create settings for anomaly detection job.
-    Process type can be `DP`, `PY`, `DDCRP`, `STREAM_PY` or `POISSON+PY`"""
+    Process type can be `DP`, `PY`, `DDCRP`, `STREAM_PY` or `POISSON_PY`"""
     settings = {}
     settings["input"] = {}
     settings["input"]["filepath"] = input_file
@@ -25,12 +26,14 @@ def create_settings(
     settings["info"]["n_nodes"] = n_nodes
     settings["info"]["type"] = process_type
     settings["info"]["stream_time_window"] = stream_time_window
+    settings["info"]["forgetting_factor"] = forgetting_factor
     settings["phase0"] = {}
     settings["phase0"]["tstart"] = param_est_interval[0]
     settings["phase0"]["tend"] = param_est_interval[1]
     settings["phase0"]["threshold"] = param_est_threshold
     settings["phase0"]["y_params_file"] = os.path.join(settings["output"]["root"], "phase0_y_params.txt")
     settings["phase0"]["x_y_params_file"] = os.path.join(settings["output"]["root"], "phase0_x_y_params.txt")
+    settings["phase0"]["pois_params_file"] = os.path.join(settings["output"]["root"], "phase0_pois_params.txt")
     settings["phase1"] = {}
     settings["phase1"]["tstart"] = test_interval[0]
     settings["phase1"]["tend"] = test_interval[1]
