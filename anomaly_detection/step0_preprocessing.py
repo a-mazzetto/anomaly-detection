@@ -22,7 +22,7 @@ def preprocessing(user_args=None):
     output2_file = settings["phase0"]["x_y_params_file"]
     n_nodes = settings["info"]["n_nodes"]
     result_folder = settings["output"]["root"]
-    is_ddcrp = settings["info"]["ddcrp"]
+    process_type = settings["info"]["type"]
     tstart = settings["phase0"]["tstart"]
     tend = settings["phase0"]["tend"]
     threshold = settings["phase0"]["threshold"]
@@ -48,11 +48,21 @@ def preprocessing(user_args=None):
                 break
 
     # Estimate destination process parameters
-    destination_process_params = pitman_yor_est_pars(
-        meas_kn=len(destination_counter),
-        meas_h1n=sum(np.isclose(list(destination_counter.values()), 1)),
-        n=sum(destination_counter.values()),
-        n_nodes=n_nodes)
+    if process_type in ("DP", "DDCRP"):
+        destination_process_params = dirichlet_est_pars(
+            meas_kn=len(destination_counter),
+            n=sum(destination_counter.values()),
+            n_nodes=n_nodes)
+    elif process_type in ("PY", "STREAM_PY", "POISSON+PY"):
+        destination_process_params = pitman_yor_est_pars(
+            meas_kn=len(destination_counter),
+            meas_h1n=sum(np.isclose(list(destination_counter.values()), 1)),
+            n=sum(destination_counter.values()),
+            n_nodes=n_nodes)
+    else:
+        raise ValueError("Unknown process type")
+    destination_process_params = [destination_process_params] if \
+        isinstance(destination_process_params, float) else destination_process_params
 
     # Estimate source processes parameters
     dest_list = list(source_counters.keys())
@@ -61,17 +71,19 @@ def preprocessing(user_args=None):
     for i, dest in enumerate(dest_list):
         counter = source_counters[dest]
         if sum(counter.values()) > threshold:
-            if is_ddcrp:
+            if process_type in ("DP", "DDCRP"):
                 dest_alpha[i] = dirichlet_est_pars(
                     meas_kn=len(counter),
                     n=sum(counter.values()),
                     n_nodes=n_nodes)
-            else:
+            elif process_type in ("PY", "STREAM_PY", "POISSON+PY"):
                 dest_alpha[i], dest_d[i] = pitman_yor_est_pars(
                     meas_kn=len(counter),
                     meas_h1n=sum(np.isclose(list(counter.values()), 1)),
                     n=sum(counter.values()),
                     n_nodes=n_nodes)
+            else:
+                raise ValueError("Unknown process type")
 
     fig, ax = plt.subplots(1, 2)
     ax[0].hist(dest_alpha, density=True)

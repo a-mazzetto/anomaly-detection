@@ -12,20 +12,20 @@ from anomaly_detection.step4_source_scores import source_scores
 
 SEED = 0
 
-@pytest.mark.parametrize("test_name, reference_file, is_ddcrp",
+@pytest.mark.parametrize("test_name, reference_file, process_type",
                          [
-                            ("anomaly_detection_py", "phase4.txt", False),
-                            ("anomaly_detection_ddcrp", "phase4.txt", True),
+                            ("anomaly_detection_py", "phase4.txt", "PY"),
+                            ("anomaly_detection_ddcrp", "phase4.txt", "DDCRP"),
                          ]
 )
-def test_anomaly_detection_py(test_name, reference_file, is_ddcrp):
+def test_anomaly_detection_py(test_name, reference_file, process_type):
     """Function to test data generation"""
     settings = create_settings(
         input_file=os.path.join(get_baseline_folder(test_name), "auth.txt"),
         output_folder=create_results_folder(test_name),
         n_nodes=100,
-        ddcrp=is_ddcrp,
-        beta_ddcrp=1 * 60 * 60
+        process_type=process_type,
+        stream_time_window=1 * 60 * 60
     )
     settings_filename = os.path.join(create_results_folder(test_name), "settings.json")
     with open(settings_filename, "w", encoding="utf-8") as file:

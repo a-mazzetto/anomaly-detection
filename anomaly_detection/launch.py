@@ -5,12 +5,13 @@ def create_settings(
         input_file,
         output_folder,
         n_nodes,
+        process_type,
         param_est_interval = [0, 1e8],
         param_est_threshold = 30,
         test_interval = [0, 1e8],
-        ddcrp=False,
-        beta_ddcrp=None):
-    """Create settings for anomaly detection job"""
+        stream_time_window = None):
+    """Create settings for anomaly detection job.
+    Process type can be `DP`, `PY`, `DDCRP`, `STREAM_PY` or `POISSON+PY`"""
     settings = {}
     settings["input"] = {}
     settings["input"]["filepath"] = input_file
@@ -22,8 +23,8 @@ def create_settings(
         os.mkdir(settings["output"]["root"])
     settings["info"] = {}
     settings["info"]["n_nodes"] = n_nodes
-    settings["info"]["ddcrp"] = ddcrp
-    settings["info"]["beta_ddcrp"] = beta_ddcrp
+    settings["info"]["type"] = process_type
+    settings["info"]["stream_time_window"] = stream_time_window
     settings["phase0"] = {}
     settings["phase0"]["tstart"] = param_est_interval[0]
     settings["phase0"]["tend"] = param_est_interval[1]
@@ -51,9 +52,8 @@ if __name__ == "__main__":
     from anomaly_detection.step3_link_scores import link_scores
     from anomaly_detection.step4_source_scores import source_scores
 
-    settings = create_settings(".//data//auth.txt", ".//data//auth//", NNODES,
-                               param_est_interval=[0, 24 * 60 * 60],
-                               test_interval=[24 * 60 * 60, 1e8])
+    settings = create_settings(".//data//auth.txt", ".//data//auth//", NNODES, process_type="PY",
+                               param_est_interval=[0, 24 * 60 * 60], test_interval=[24 * 60 * 60, 1e8])
     settings_filename = ".//data//auth//settings.json"
     with open(settings_filename, "w", encoding="utf-8") as file:
         json.dump(settings, file, indent=4)
@@ -64,9 +64,9 @@ if __name__ == "__main__":
     link_scores([f"{settings_filename}"])
     source_scores([f"{settings_filename}"])
 
-    settings_ddcrp = create_settings(".//data//auth.txt", ".//data//auth_ddcrp//", NNODES,
-                                     param_est_interval=[0, 24 * 60 * 60], ddcrp=True, beta_ddcrp=12 * 60 * 60,
-                                     test_interval=[24 * 60 * 60, 1e8])
+    settings_ddcrp = create_settings(".//data//auth.txt", ".//data//auth_ddcrp//", NNODES, process_type="DDCRP",
+                                     param_est_interval=[0, 24 * 60 * 60], test_interval=[24 * 60 * 60, 1e8],
+                                     stream_time_window=12 * 60 * 60,)
     settings_filename_ddcrp = ".//data//auth_ddcrp//settings.json"
     with open(settings_filename_ddcrp, "w", encoding="utf-8") as file:
         json.dump(settings_ddcrp, file, indent=4)
