@@ -71,6 +71,8 @@ class ForgettingFactorsMean():
 
     def update(self, num, den):
         """Update"""
+        if den <= 0:
+            den += 1e-8
         assert den > 0, "Denominator must be positive"
         self.num = self.lam * self.num + num
         if self.den > 0:
