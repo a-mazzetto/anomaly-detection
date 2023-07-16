@@ -113,7 +113,7 @@ def generate_time_sequence(period, max_time, n_nodes, gen):
     lambda_0 = np.mean(lambda_min_max)
     lambda_1 = np.diff(lambda_min_max)[-1] / 2
     times = inhomogeneous_poisson_process_sinusoidal(
-        lambda_0, lambda_1, period, max_time, gen=gen
+        rate0=lambda_0, rate1=lambda_1, period=period, tmax=max_time, gen=gen
         )
     return times
 
