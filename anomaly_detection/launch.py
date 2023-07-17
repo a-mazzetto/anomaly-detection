@@ -18,6 +18,7 @@ def create_settings(
     settings["input"]["filepath"] = input_file
     settings["input"]["filename"] = ".".join(
         os.path.basename(input_file).split(".")[:-1])
+    settings["input"]["root"] = os.path.dirname(input_file)
     settings["output"] = {}
     settings["output"]["root"] = output_folder
     if not os.path.exists(settings["output"]["root"]):
@@ -47,6 +48,7 @@ def create_settings(
     return settings
 
 if __name__ == "__main__":
+    from copy import deepcopy
     import json
     from data_generation.constants import NNODES
     from anomaly_detection.step0_preprocessing import preprocessing
@@ -60,19 +62,27 @@ if __name__ == "__main__":
     ##################
     ### PITMAN-YOR ###
     ##################
-    settings = create_settings("./data/dataset_002/auth.txt", "./data/dataset_002/PY/", NNODES, process_type="PY",
-                               param_est_interval=[0, 24 * 3600], test_interval=[24 * 3600, 1e8])
-    settings_filename = "./data/dataset_002/PY/settings.json"
-    with open(settings_filename, "w", encoding="utf-8") as file:
-        json.dump(settings, file, indent=4)
+    settings_train = create_settings("./data/dataset_002/auth.txt", "./data/dataset_002/PY/", NNODES, process_type="PY",
+                                     param_est_interval=[0, 24 * 3600], test_interval=[24 * 3600, 1e8])
+    settings_train_filename = "./data/dataset_002/PY/settings_train.json"
+    with open(settings_train_filename, "w", encoding="utf-8") as file:
+        json.dump(settings_train, file, indent=4)
 
-    preprocessing([f"{settings_filename}"])
+    settings_test = deepcopy(settings_train)
+    settings_test_filename = "./data/dataset_002/PY/settings_test.json"
     if USE_REAL_PARAMETERS:
-        pass
-    destination_process([f"{settings_filename}"])
-    source_conditional_process([f"{settings_filename}"])
-    link_scores([f"{settings_filename}"])
-    source_scores([f"{settings_filename}"])
+        settings_test["phase0"]["y_params_file"] = os.path.join(
+            os.path.dirname(settings_test["input"]["filepath"]), "phase0_y_params.txt")
+        settings_test["phase0"]["x_y_params_file"] = os.path.join(
+            os.path.dirname(settings_test["input"]["filepath"]), "phase0_x_y_params.txt")
+    with open(settings_test_filename, "w", encoding="utf-8") as file:
+        json.dump(settings_test, file, indent=4)
+
+    preprocessing([f"{settings_train_filename}"])
+    destination_process([f"{settings_test_filename}"])
+    source_conditional_process([f"{settings_test_filename}"])
+    link_scores([f"{settings_test_filename}"])
+    source_scores([f"{settings_test_filename}"])
 
     ##################
     ### DIRICHLET ###
@@ -84,8 +94,6 @@ if __name__ == "__main__":
         json.dump(settings_dp, file, indent=4)
 
     preprocessing([f"{settings_filename_dp}"])
-    if USE_REAL_PARAMETERS:
-        pass
     destination_process([f"{settings_filename_dp}"])
     source_conditional_process([f"{settings_filename_dp}"])
     link_scores([f"{settings_filename_dp}"])
@@ -101,13 +109,21 @@ if __name__ == "__main__":
     with open(settings_filename_ddcrp, "w", encoding="utf-8") as file:
         json.dump(settings_ddcrp, file, indent=4)
 
-    preprocessing([f"{settings_filename_ddcrp}"])
+    settings_ddcrp_test = deepcopy(settings_ddcrp)
+    settings_filename_ddcrp_test = "./data/dataset_002/PY/settings_test.json"
     if USE_REAL_PARAMETERS:
-        pass
-    destination_process([f"{settings_filename_ddcrp}"])
-    source_conditional_process([f"{settings_filename_ddcrp}"])
-    link_scores([f"{settings_filename_ddcrp}"])
-    source_scores([f"{settings_filename_ddcrp}"])
+        settings_ddcrp_test["phase0"]["y_params_file"] = os.path.join(
+            os.path.dirname(settings_ddcrp_test["input"]["filepath"]), "phase0_y_params.txt")
+        settings_ddcrp_test["phase0"]["x_y_params_file"] = os.path.join(
+            os.path.dirname(settings_ddcrp_test["input"]["filepath"]), "phase0_x_y_params.txt")
+    with open(settings_filename_ddcrp_test, "w", encoding="utf-8") as file:
+        json.dump(settings_ddcrp_test, file, indent=4)
+
+    preprocessing([f"{settings_filename_ddcrp}"])
+    destination_process([f"{settings_filename_ddcrp_test}"])
+    source_conditional_process([f"{settings_filename_ddcrp_test}"])
+    link_scores([f"{settings_filename_ddcrp_test}"])
+    source_scores([f"{settings_filename_ddcrp_test}"])
 
     #################
     ### STREAM-PY ###
@@ -120,8 +136,6 @@ if __name__ == "__main__":
         json.dump(settings_stream_py, file, indent=4)
 
     preprocessing([f"{settings_filename_stream_py}"])
-    if USE_REAL_PARAMETERS:
-        pass
     destination_process([f"{settings_filename_stream_py}"])
     source_conditional_process([f"{settings_filename_stream_py}"])
     link_scores([f"{settings_filename_stream_py}"])
@@ -138,8 +152,6 @@ if __name__ == "__main__":
         json.dump(settings_stream_pois_py, file, indent=4)
 
     preprocessing([f"{settings_filename_pois_py}"])
-    if USE_REAL_PARAMETERS:
-        pass
     destination_process([f"{settings_filename_pois_py}"])
     source_conditional_process([f"{settings_filename_pois_py}"])
     link_scores([f"{settings_filename_pois_py}"])
