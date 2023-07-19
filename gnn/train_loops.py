@@ -1,8 +1,10 @@
 """Training loops"""
+from typing import List
 from copy import deepcopy
+import numpy as np
+import matplotlib.pyplot as plt
 import torch
 from torch_geometric.data import DataLoader
-from typing import List
 
 def graph_classification_train_loop(model, optimizer, loss_fn, num_epochs, train_loader, val_loader,
                                     metric, early_stopping, best_model_path, print_freq=None):
@@ -86,3 +88,35 @@ def graph_classification_train_loop(model, optimizer, loss_fn, num_epochs, train
     }
 
     return history
+
+# Plotting
+def plot_training_results(histories: List[dict], names=None):
+    def moving_average(x, w):
+        return np.convolve(x, np.ones(w), 'valid') / w
+    
+    COLORS = ["blue", "red", "green", "cyan", "magenta"]
+
+    fig, ax = plt.subplots(nrows=2, ncols=2)
+    fig.tight_layout()
+    ax[0, 0].set_title('Train loss')
+    ax[0, 1].set_title('Train accuracy')
+    ax[1, 0].set_title('Validation loss')
+    ax[1, 1].set_title('Validation accuracy')
+    _ = [axis.grid() for axis in ax.flatten()]
+
+    for num, history in enumerate(histories):
+        ax[0, 0].plot(history['loss'], alpha=0.2, color=COLORS[num])
+        ax[0, 0].plot(moving_average(history['loss'], 10), color=COLORS[num], label=names[num])
+
+        ax[0, 1].plot(history['accuracy'], alpha=0.2, color=COLORS[num])
+        ax[0, 1].plot(moving_average(history['loss'], 10), color=COLORS[num], label=names[num])
+
+        ax[1, 0].plot(history['val_loss'], alpha=0.2, color=COLORS[num])
+        ax[1, 0].plot(moving_average(history['loss'], 10), color=COLORS[num], label=names[num])
+
+        ax[1, 1].plot(history['val_accuracy'], alpha=0.2, color=COLORS[num])
+        ax[1, 1].plot(moving_average(history['loss'], 10), color=COLORS[num], label=names[num])
+
+    _ = [axis.legend() for axis in ax.flatten()]
+
+    return fig
