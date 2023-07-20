@@ -39,13 +39,17 @@ def graph_classification_train_loop(model, optimizer, loss_fn, num_epochs, train
             loss.backward()
             optimizer.step()
 
-            sum_loss_train += loss.item()
-            # Use detach to avoid affecting gradients
-            _ = epoch_metric_train.update(predict.detach(), batch.y.detach())
-
         model.eval()
 
         with torch.no_grad():
+
+            # TODO: understand why the presence of this loop changes the results
+            for batch in train_loader:
+                batch = batch.to(device)
+                predict = model(batch)
+                loss = loss_fn(predict, batch.y)
+                sum_loss_train += loss.item()
+                _ = epoch_metric_train.update(predict.detach(), batch.y.detach())
 
             for batch in val_loader:
                 batch = batch.to(device)
