@@ -7,7 +7,7 @@ import torch
 from torch_geometric.data import DataLoader
 
 def graph_classification_train_loop(model, optimizer, loss_fn, num_epochs, train_loader, val_loader,
-                                    metric, early_stopping, best_model_path, print_freq=None):
+                                    metric, early_stopping, best_model_path=None, print_freq=None):
     """pytorch training loop. Deals with sending to device internally"""
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
@@ -77,8 +77,9 @@ def graph_classification_train_loop(model, optimizer, loss_fn, num_epochs, train
 
         if early_stopping.early_stop(avg_epoch_loss_valid):
             break
-
-    torch.save(best_model_state_dict, best_model_path)
+    
+    if best_model_path is not None:
+        torch.save(best_model_state_dict, best_model_path)
 
     history = {
         'loss': epoch_losses_train,
@@ -109,13 +110,13 @@ def plot_training_results(histories: List[dict], names=None):
         ax[0, 0].plot(moving_average(history['loss'], 10), color=COLORS[num], label=names[num])
 
         ax[0, 1].plot(history['accuracy'], alpha=0.2, color=COLORS[num])
-        ax[0, 1].plot(moving_average(history['loss'], 10), color=COLORS[num], label=names[num])
+        ax[0, 1].plot(moving_average(history['accuracy'], 10), color=COLORS[num], label=names[num])
 
         ax[1, 0].plot(history['val_loss'], alpha=0.2, color=COLORS[num])
-        ax[1, 0].plot(moving_average(history['loss'], 10), color=COLORS[num], label=names[num])
+        ax[1, 0].plot(moving_average(history['val_loss'], 10), color=COLORS[num], label=names[num])
 
         ax[1, 1].plot(history['val_accuracy'], alpha=0.2, color=COLORS[num])
-        ax[1, 1].plot(moving_average(history['loss'], 10), color=COLORS[num], label=names[num])
+        ax[1, 1].plot(moving_average(history['val_accuracy'], 10), color=COLORS[num], label=names[num])
 
     _ = [axis.legend() for axis in ax.flatten()]
 
