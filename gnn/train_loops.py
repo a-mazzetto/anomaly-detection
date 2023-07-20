@@ -18,6 +18,8 @@ def graph_classification_train_loop(model, optimizer, loss_fn, num_epochs, train
     # Initialize metrics
     epoch_metric_train = metric
     epoch_metric_valid = deepcopy(metric)
+    epoch_metric_train.to(device)
+    epoch_metric_valid.to(device)
     
     for epoch in range(num_epochs):
         # initialize train and validation loss to 0
