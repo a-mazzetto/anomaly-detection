@@ -63,10 +63,10 @@ def graph_classification_train_loop(model, optimizer, loss_fn, num_epochs, train
                 _ = epoch_metric_valid.update(predict.detach(), batch.y.detach())
 
         avg_epoch_loss_train = sum_loss_train / len(train_loader)
-        avg_epoch_metric_train = epoch_metric_train.compute().detach()
+        avg_epoch_metric_train = epoch_metric_train.compute().detach().numpy()
 
         avg_epoch_loss_valid = sum_loss_valid / len(val_loader)
-        avg_epoch_metric_valid = epoch_metric_valid.compute().detach()
+        avg_epoch_metric_valid = epoch_metric_valid.compute().detach().numpy()
 
         if print_freq is not None and (epoch + 1) % print_freq == 0:
             print((f"Epoch {epoch + 1}: loss - {avg_epoch_loss_train:.4f}, metric = {avg_epoch_metric_train:.4f}, "
