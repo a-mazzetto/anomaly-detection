@@ -1,5 +1,6 @@
 """Fraph Classification Demo"""
 # %%
+import os
 import numpy as np
 import torch
 from torch_geometric.datasets import TUDataset
@@ -123,6 +124,8 @@ history = graph_classification_train_loop(model=model, optimizer=optimizer, loss
                                           early_stopping=EarlyStopping(patience=200),
                                           best_model_path=None, print_freq=10)
 
-plot_training_results([colab_history, history], ["colab", "mine"]);
+fig = plot_training_results([colab_history, history], ["colab", "mine"])
+os.makedirs("./plots", exist_ok=True)
+fig.savefig("./plots/graph_classification_demo.pdf")
 
 # %%
