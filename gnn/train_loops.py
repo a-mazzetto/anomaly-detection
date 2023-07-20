@@ -43,7 +43,7 @@ def graph_classification_train_loop(model, optimizer, loss_fn, num_epochs, train
 
         with torch.no_grad():
 
-            # TODO: understand why the presence of this loop changes the results
+            # Remember that DataLoader shuffles the dataset at each iteration
             for batch in train_loader:
                 batch = batch.to(device)
                 predict = model(batch)
