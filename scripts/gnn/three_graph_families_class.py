@@ -16,6 +16,7 @@ try:
     parser = argparse.ArgumentParser(description="Classify three graph families",
                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-my", "--mydataset", type=bool, default=True, help="Should use custom dataset?")
+    parser.add_argument("-feat", "--use_node_features", type=bool, default=True, help="Use node features in my dataset")
     parser.add_argument("-e", "--epochs", type=int, default=10, help="Number of epochs")
     parser.add_argument("-p", "--patience", type=int, default=10, help="Patience")
 
@@ -24,6 +25,7 @@ try:
     args = parser.parse_args()
     config = vars(args)
     MY_DATASET = config["mydataset"]
+    USE_NODE_FEATURES = config["use_node_features"]
     NUM_EPOCHS = config["epochs"]
     PATIENCE = config["patience"]
     HIDDEN_CHANNELS = config["gnn_hidden_channels"]
@@ -32,6 +34,7 @@ try:
 except:
     print("Setting default values, argparser failed!")
     MY_DATASET = True
+    USE_NODE_FEATURES = True
     NUM_EPOCHS = 10
     PATIENCE = 10
     HIDDEN_CHANNELS = 64
@@ -40,7 +43,7 @@ except:
 # %% Load the data
 
 if MY_DATASET:
-    dataset = ThreeGraphFamiliesDataset()
+    dataset = ThreeGraphFamiliesDataset(use_features=USE_NODE_FEATURES)
     loader = DataLoader(dataset, batch_size=16)
     num_classes = len(np.unique([_data.y.numpy() for _data in dataset]))
     train_idx, test_idx = torch.utils.data.random_split(
@@ -168,6 +171,6 @@ gin_history = graph_classification_train_loop(
 # %% Final Plotting
 fig = plot_training_results([gcn_history, sage_history, gin_history], ["GCN", "SAGE", "GIN"])
 os.makedirs("./plots", exist_ok=True)
-fig.savefig("./plots/graph_classification_demo.pdf")
+fig.savefig("./plots/three_families_graph_classification.pdf")
 
 # %%
