@@ -15,8 +15,8 @@ from gnn_data_generation.three_graph_families_dataset import ThreeGraphFamiliesD
 try:
     parser = argparse.ArgumentParser(description="Classify three graph families",
                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-my", "--mydataset", type=bool, default=True, help="Should use custom dataset?")
-    parser.add_argument("-feat", "--use_node_features", type=bool, default=True, help="Use node features in my dataset")
+    parser.add_argument("-my", "--mydataset", action="store_false", help="Should use custom dataset?")
+    parser.add_argument("-feat", "--use_node_features", action="store_false", help="Use node features in my dataset")
     parser.add_argument("-e", "--epochs", type=int, default=10, help="Number of epochs")
     parser.add_argument("-p", "--patience", type=int, default=10, help="Patience")
 
