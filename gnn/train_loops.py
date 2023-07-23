@@ -228,7 +228,7 @@ def vgrnn_train_loop(model, optimizer, num_epochs, train_loader, val_loader, ear
             kl_loss, nll_loss, _, _, _, _ = model(
                 torch.stack(unbatch(batch.x, batch=batch.batch)),
                 unbatch_edge_index(batch.edge_index, batch=batch.batch),
-                to_dense_adj(batch.edge_index, batch=batch.batch)
+                to_dense_adj(batch.edge_index, batch=batch.batch).to(device)
             )
 
             elbo = kl_loss + nll_loss
@@ -250,7 +250,7 @@ def vgrnn_train_loop(model, optimizer, num_epochs, train_loader, val_loader, ear
                 kl_loss, nll_loss, _, _, _, pred = model(
                     torch.stack(unbatch(batch.x, batch=batch.batch)),
                     unbatch_edge_index(batch.edge_index, batch=batch.batch),
-                    dense_adj
+                    dense_adj.to(device)
                 )
                 elbo = kl_loss + nll_loss
                 sum_loss_train += elbo.item()
@@ -266,7 +266,7 @@ def vgrnn_train_loop(model, optimizer, num_epochs, train_loader, val_loader, ear
                 kl_loss, nll_loss, _, _, _, pred = model(
                     torch.stack(unbatch(batch.x, batch=batch.batch)),
                     unbatch_edge_index(batch.edge_index, batch=batch.batch),
-                    dense_adj
+                    dense_adj.to(device)
                 )
                 elbo = kl_loss + nll_loss
                 sum_loss_valid += elbo.item()
