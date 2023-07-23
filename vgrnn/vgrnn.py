@@ -2,6 +2,7 @@
 import torch
 from torch.nn import Sequential, Linear, ReLU, Softplus
 from torch_geometric.nn import Sequential as GeomSequential
+from torch_geometric.nn.models import GCN, GraphSAGE, GIN
 from torch_geometric.nn.conv import GCNConv, SAGEConv, GINConv
 from torch.autograd import Variable
 import torch.nn.functional as F
@@ -138,7 +139,7 @@ class VGRNN(torch.nn.Module):
             all_dec_t.append(dec_t_sl)
             all_z_t.append(z_t)
         
-        return kld_loss, nll_loss, all_enc_mean, all_prior_mean, h
+        return kld_loss, nll_loss, all_enc_mean, all_prior_mean, h, all_dec_t
     
     def dec(self, z):
         outputs = InnerProductDecoder(act=lambda x:x)(z)
@@ -175,9 +176,9 @@ class VGRNN(torch.nn.Module):
         temp_sum = target_adj_dense.sum()
         posw = float(temp_size * temp_size - temp_sum) / temp_sum
         norm = temp_size * temp_size / float((temp_size * temp_size - temp_sum) * 2)
-        nll_loss_mat = F.binary_cross_entropy_with_logits(input=logits
-                                                          , target=target_adj_dense
-                                                          , pos_weight=posw
-                                                          , reduction='none')
+        nll_loss_mat = F.binary_cross_entropy_with_logits(input=logits,
+                                                          target=target_adj_dense,
+                                                          pos_weight=posw,
+                                                          reduction='none')
         nll_loss = -1 * norm * torch.mean(nll_loss_mat, dim=[0,1])
         return - nll_loss
