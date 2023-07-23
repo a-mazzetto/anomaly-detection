@@ -43,7 +43,7 @@ for adj in adj_orig_dense_list:
 # %% Model
 from vgrnn.vgrnn import VGRNN
 
-vgrnn_model = VGRNN(x_dim, h_dim, z_dim, n_layers, eps, conv=conv_type, bias=True)
+vgrnn_model = VGRNN(x_dim, h_dim, z_dim, n_layers, eps, bias=True)
 
 vgrnn_model(x_in, edge_idx_list, adj_orig_dense_list)
 
@@ -334,7 +334,7 @@ tst_after = 0
 for k in range(1000):
     optimizer.zero_grad()
     start_time = time.time()
-    kld_loss, nll_loss, _, _, hidden_st = vgrnn_model(x_in[seq_start:seq_end],
+    kld_loss, nll_loss, _, _, hidden_st, pred = vgrnn_model(x_in[seq_start:seq_end],
                                                       edge_idx_list[seq_start:seq_end],
                                                       adj_orig_dense_list[seq_start:seq_end])
     loss = kld_loss + nll_loss
@@ -344,7 +344,7 @@ for k in range(1000):
     torch.nn.utils.clip_grad_norm_(vgrnn_model.parameters(), clip)
     
     if k>tst_after:
-        _, _, enc_means, pri_means, _ = vgrnn_model(x_in[seq_end:seq_len],
+        _, _, enc_means, pri_means, _, _ = vgrnn_model(x_in[seq_end:seq_len],
                                                     edge_idx_list[seq_end:seq_len],
                                                     adj_orig_dense_list[seq_end:seq_len],
                                                     hidden_st)
