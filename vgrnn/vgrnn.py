@@ -90,7 +90,8 @@ class VGRNN(torch.nn.Module):
         all_dec_t, all_z_t = [], []
         
         if hidden_in is None:
-            h = Variable(torch.zeros(self.n_layers, x.size(1), self.h_dim))
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            h = Variable(torch.zeros(self.n_layers, x.size(1), self.h_dim)).to(device)
         else:
             h = Variable(hidden_in)
         
