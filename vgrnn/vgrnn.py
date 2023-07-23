@@ -60,8 +60,7 @@ class VGRNN(torch.nn.Module):
         super(VGRNN, self).__init__()
         
         self.x_dim = x_dim
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.eps = eps.to(device)
+        self.eps = eps
         self.h_dim = h_dim
         self.z_dim = z_dim
         self.n_layers = n_layers
