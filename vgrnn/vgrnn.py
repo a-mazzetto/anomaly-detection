@@ -152,7 +152,8 @@ class VGRNN(torch.nn.Module):
     
     def _reparameterized_sample(self, mean, std):
         eps1 = torch.FloatTensor(std.size()).normal_()
-        eps1 = Variable(eps1)
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        eps1 = Variable(eps1).to(device)
         return eps1.mul(std).add_(mean)
     
     def _kld_gauss(self, mean_1, std_1, mean_2, std_2):
