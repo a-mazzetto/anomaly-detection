@@ -7,9 +7,9 @@ from torch_geometric.nn.conv import GCNConv, SAGEConv, GINConv
 from torch.autograd import Variable
 import torch.nn.functional as F
 
-class Graph_GRU_SAGE(torch.nn.Module):
+class Graph_GRU(torch.nn.Module):
     def __init__(self, input_size, hidden_size, n_layer, bias=True):
-        super(Graph_GRU_SAGE, self).__init__()
+        super(Graph_GRU, self).__init__()
 
         self.hidden_size = hidden_size
         self.n_layer = n_layer
@@ -24,12 +24,12 @@ class Graph_GRU_SAGE(torch.nn.Module):
         
         for i in range(self.n_layer):
             _input_size = input_size if i == 0 else hidden_size
-            self.weight_xz.append(SAGEConv(_input_size, hidden_size, bias=bias))
-            self.weight_hz.append(SAGEConv(hidden_size, hidden_size, bias=bias))
-            self.weight_xr.append(SAGEConv(_input_size, hidden_size, bias=bias))
-            self.weight_hr.append(SAGEConv(hidden_size, hidden_size, bias=bias))
-            self.weight_xh.append(SAGEConv(_input_size, hidden_size, bias=bias))
-            self.weight_hh.append(SAGEConv(hidden_size, hidden_size, bias=bias))
+            self.weight_xz.append(GINConv(Linear(_input_size, hidden_size, bias=bias)))
+            self.weight_hz.append(GINConv(Linear(hidden_size, hidden_size, bias=bias)))
+            self.weight_xr.append(GINConv(Linear(_input_size, hidden_size, bias=bias)))
+            self.weight_hr.append(GINConv(Linear(hidden_size, hidden_size, bias=bias)))
+            self.weight_xh.append(GINConv(Linear(_input_size, hidden_size, bias=bias)))
+            self.weight_hh.append(GINConv(Linear(hidden_size, hidden_size, bias=bias)))
     
     def forward(self, inp, edgidx, h):
         h_out = torch.zeros(h.size())
@@ -56,7 +56,7 @@ class InnerProductDecoder(torch.nn.Module):
         return self.act(x)
 
 class VGRNN(torch.nn.Module):
-    def __init__(self, x_dim, h_dim, z_dim, n_layers, eps, conv='GCN', bias=False):
+    def __init__(self, x_dim, h_dim, z_dim, n_layers, eps, bias=False):
         super(VGRNN, self).__init__()
         
         self.x_dim = x_dim
@@ -65,23 +65,20 @@ class VGRNN(torch.nn.Module):
         self.z_dim = z_dim
         self.n_layers = n_layers
         
-        # if conv == 'GCN':
-        self.phi_x = Sequential(Linear(x_dim, h_dim), ReLU())
-        self.phi_z = Sequential(Linear(z_dim, h_dim), ReLU())
+        # Functions for GRU recurrence
+        self.phi_x = Sequential(Linear(x_dim, h_dim, bias=bias), ReLU())
+        self.phi_z = Sequential(Linear(z_dim, h_dim, bias=bias), ReLU())
+        self.rnn = Graph_GRU(h_dim + h_dim, h_dim, n_layers, bias)
 
-        self.enc = GeomSequential('x, edge_index',
-                                  [(GCNConv(h_dim + h_dim, h_dim), 'x, edge_index -> x'),
-                                   ReLU()])
+        # Encoder: 2-layered GIN
+        self.enc = GINConv(Sequential(Linear(h_dim + h_dim, h_dim), ReLU()))
         self.enc_mean = GCNConv(h_dim, z_dim)
-        self.enc_std = GeomSequential('x, edge_index',
-                                  [(GCNConv(h_dim, z_dim), 'x, edge_index -> x'),
-                                   Softplus()])
+        self.enc_std = GINConv(Sequential(Linear(h_dim, z_dim), Softplus()))
 
+        # Prior: 2-layered MLP
         self.prior = Sequential(Linear(h_dim, h_dim), ReLU())
         self.prior_mean = Sequential(Linear(h_dim, z_dim))
         self.prior_std = Sequential(Linear(h_dim, z_dim), Softplus())
-
-        self.rnn = Graph_GRU_SAGE(h_dim + h_dim, h_dim, n_layers, bias)
     
     def forward(self, x, edge_idx_list, adj_orig_dense_list, hidden_in=None):
         assert len(adj_orig_dense_list) == len(edge_idx_list)
