@@ -49,7 +49,13 @@ class VGRNNTestDataset(InMemoryDataset):
         """
         self.use_features = use_features
         super().__init__(root, transform, pre_transform, pre_filter)
-        self.data, self.slices = torch.load(self.processed_paths[0])
+        data = torch.load(self.processed_paths[0])
+        batch_number = np.loadtxt(self.processed_paths[1])
+        batches = []
+        for i in np.unique(batch_number):
+            batch_match = np.where(batch_number == i)[0]
+            batches.append(Batch.from_data_list(data[batch_match[0]:(batch_match[-1] + 1)]))
+        self.data, self.slices = self.collate(batches)
 
     @property
     def raw_file_names(self):
@@ -58,9 +64,9 @@ class VGRNNTestDataset(InMemoryDataset):
     @property
     def processed_file_names(self):
         if self.use_features:
-            return ['vgrnn_training_dataset_feat.pt']
+            return ['vgrnn_training_dataset_feat.pt', 'batch_numper_feat.txt']
         else:
-            return ['vgrnn_training_dataset.pt']
+            return ['vgrnn_training_dataset.pt', 'batch_number.txt']
 
     def download(self):
         """Create raw dataset and save to `raw_dir`"""
@@ -77,9 +83,9 @@ class VGRNNTestDataset(InMemoryDataset):
         if self.pre_transform is not None:
             raise NotImplementedError("No pre-transform method")
 
-        batch_list = []
-        for dyn_graph in data_groups:
-            processed_dyn_graph = []
+        processed_dyn_graph = []
+        batch_number = np.ndarray(shape=(0,))
+        for n_batch, dyn_graph in enumerate(data_groups):
             for static_graph_links in dyn_graph:
                 # Guarantee same dimension for all
                 max_nodes = constants.NNODES
@@ -95,11 +101,13 @@ class VGRNNTestDataset(InMemoryDataset):
                 links_matrix = torch.tensor(static_graph_links, dtype=torch.int64).t().contiguous()
                 geom_data = Data(x=features, edge_index=links_matrix)
                 processed_dyn_graph.append(geom_data)
-            batch_list.append(Batch.from_data_list(processed_dyn_graph))
+                batch_number = np.append(batch_number, n_batch)
 
-        data, slices = self.collate(batch_list)
-        torch.save((data, slices), self.processed_paths[0])
+        torch.save(processed_dyn_graph, self.processed_paths[0])
+        np.savetxt(self.processed_paths[1], batch_number.astype(int))
 
 if __name__ == "__main__":
 
     dataset = VGRNNTestDataset(use_features=False)
+
+# %%
