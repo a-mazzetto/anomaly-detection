@@ -115,7 +115,7 @@ class VGRNN(torch.nn.Module):
             dec_t = self.dec(z_t)
             
             #recurrence
-            _, h = self.rnn(torch.cat([phi_x_t, phi_z_t], 1), edge_idx_list[t], h)
+            _, h = self.rnn(torch.cat([phi_x_t, phi_z_t], 1).to(phi_x_t.device), edge_idx_list[t], h)
             
             nnodes = adj_orig_dense_list[t].size()[0]
             enc_mean_t_sl = enc_mean_t[0:nnodes, :]
