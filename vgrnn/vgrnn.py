@@ -90,10 +90,10 @@ class VGRNN(torch.nn.Module):
         all_dec_t, all_z_t = [], []
         
         if hidden_in is None:
-            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-            h = Variable(torch.zeros(self.n_layers, x.size(1), self.h_dim)).to(device)
+            h = Variable(torch.zeros(self.n_layers, x.size(1), self.h_dim))
         else:
             h = Variable(hidden_in)
+        self.register_buffer("h", h, persistent=False)
         
         for t in range(x.size(0)):
             phi_x_t = self.phi_x(x[t])
@@ -152,8 +152,8 @@ class VGRNN(torch.nn.Module):
     
     def _reparameterized_sample(self, mean, std):
         eps1 = torch.FloatTensor(std.size()).normal_()
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        eps1 = Variable(eps1).to(device)
+        self.register_buffer("eps1", eps1, persistent=False)
+        eps1 = Variable(eps1)
         return eps1.mul(std).add_(mean)
     
     def _kld_gauss(self, mean_1, std_1, mean_2, std_2):
