@@ -32,9 +32,12 @@ class Graph_GRU(torch.nn.Module):
             self.weight_hh.append(GINConv(Linear(hidden_size, hidden_size, bias=bias)))
     
     def forward(self, inp, edgidx, h):
-        h_out = torch.zeros(h.size()).to(h.device)
+        h_out = torch.zeros(h.size())
         for i in range(self.n_layer):
             _input = inp if i == 0 else h_out[i - 1]
+            print(_input.device)
+            print(edgidx.device)
+            print(h.device)
             z_g = torch.sigmoid(self.weight_xz[i](_input, edgidx) + self.weight_hz[i](h[i], edgidx))
             r_g = torch.sigmoid(self.weight_xr[i](_input, edgidx) + self.weight_hr[i](h[i], edgidx))
             h_tilde_g = torch.tanh(self.weight_xh[i](_input, edgidx) + self.weight_hh[i](r_g * h[i], edgidx))
@@ -115,7 +118,7 @@ class VGRNN(torch.nn.Module):
             dec_t = self.dec(z_t)
             
             #recurrence
-            _, h = self.rnn(torch.cat([phi_x_t, phi_z_t], 1).to(phi_x_t.device), edge_idx_list[t], h)
+            _, h = self.rnn(torch.cat([phi_x_t, phi_z_t], 1), edge_idx_list[t], h)
             
             nnodes = adj_orig_dense_list[t].size()[0]
             enc_mean_t_sl = enc_mean_t[0:nnodes, :]
