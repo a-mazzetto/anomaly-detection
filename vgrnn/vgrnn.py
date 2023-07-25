@@ -98,7 +98,7 @@ class VGRNN(torch.nn.Module):
             phi_x_t = self.phi_x(x[t])
             
             #encoder
-            enc_t = self.enc(torch.cat([phi_x_t, h[-1]], 1), edge_idx_list[t])
+            enc_t = self.enc(torch.cat([phi_x_t, h[-1]], 1).to(phi_x_t.device), edge_idx_list[t])
             enc_mean_t = self.enc_mean(enc_t, edge_idx_list[t])
             enc_std_t = self.enc_std(enc_t, edge_idx_list[t])
             
