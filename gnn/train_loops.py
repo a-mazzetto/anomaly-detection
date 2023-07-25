@@ -8,6 +8,7 @@ from torch_geometric.data import DataLoader
 from torch_geometric.utils import unbatch, unbatch_edge_index
 from torch_geometric.utils import to_dense_adj
 from sklearn.metrics import roc_auc_score, average_precision_score
+from cuda.cuda_utils import select_device
 
 def graph_classification_train_loop(model, optimizer, loss_fn, num_epochs, train_loader, val_loader,
                                     metric, early_stopping, best_model_path=None, print_freq=None):
@@ -200,9 +201,10 @@ def multiple_ap_score(x_true, x_pred):
                      _adj, _pred in zip(x_true, x_pred)]).mean()
 
 def vgrnn_train_loop(model, optimizer, num_epochs, train_loader, val_loader, early_stopping,
-                     best_model_path=None, print_freq=None):
+                     best_model_path=None, print_freq=None, device=None):
     """pytorch training loop for VGRNN. Deals with sending to device internally"""
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    if device is None:
+        device = select_device()
     model.to(device)
 
     epoch_losses_train, epoch_kls_train, epoch_nlls_train = [], [], []
