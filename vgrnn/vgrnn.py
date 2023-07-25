@@ -1,6 +1,6 @@
 """VGRNN imlementation following https://arxiv.org/abs/1908.09710"""
 import torch
-from torch.nn import Sequential, Linear, ReLU, Softplus
+from torch.nn import Sequential, Linear, ReLU, Softplus, ModuleList
 from torch_geometric.nn import Sequential as GeomSequential
 from torch_geometric.nn.models import GCN, GraphSAGE, GIN
 from torch_geometric.nn.conv import GCNConv, SAGEConv, GINConv
@@ -15,12 +15,12 @@ class Graph_GRU(torch.nn.Module):
         self.n_layer = n_layer
         
         # GRU weights
-        self.weight_xz = []
-        self.weight_hz = []
-        self.weight_xr = []
-        self.weight_hr = []
-        self.weight_xh = []
-        self.weight_hh = []
+        self.weight_xz = ModuleList()
+        self.weight_hz = ModuleList()
+        self.weight_xr = ModuleList()
+        self.weight_hr = ModuleList()
+        self.weight_xh = ModuleList()
+        self.weight_hh = ModuleList()
         
         for i in range(self.n_layer):
             _input_size = input_size if i == 0 else hidden_size
@@ -35,9 +35,6 @@ class Graph_GRU(torch.nn.Module):
         h_out = torch.zeros(h.size())
         for i in range(self.n_layer):
             _input = inp if i == 0 else h_out[i - 1]
-            print(_input.device)
-            print(edgidx.device)
-            print(h.device)
             z_g = torch.sigmoid(self.weight_xz[i](_input, edgidx) + self.weight_hz[i](h[i], edgidx))
             r_g = torch.sigmoid(self.weight_xr[i](_input, edgidx) + self.weight_hr[i](h[i], edgidx))
             h_tilde_g = torch.tanh(self.weight_xh[i](_input, edgidx) + self.weight_hh[i](r_g * h[i], edgidx))
