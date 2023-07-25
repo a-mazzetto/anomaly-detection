@@ -258,8 +258,8 @@ def vgrnn_train_loop(model, optimizer, num_epochs, train_loader, val_loader, ear
                 sum_loss_train += elbo.item()
                 sum_kl_train += kl_loss.item()
                 sum_nll_train += nll_loss.item()
-                sum_auc_train += multiple_roc_auc_score(dense_adj, pred)
-                sum_ap_train += multiple_ap_score(dense_adj, pred)
+                sum_auc_train += multiple_roc_auc_score(dense_adj, pred.detach())
+                sum_ap_train += multiple_ap_score(dense_adj, pred.detach())
                 
 
             for batch in val_loader:
@@ -274,8 +274,8 @@ def vgrnn_train_loop(model, optimizer, num_epochs, train_loader, val_loader, ear
                 sum_loss_valid += elbo.item()
                 sum_kl_valid += kl_loss.item()
                 sum_nll_valid += nll_loss.item()
-                sum_auc_valid += multiple_roc_auc_score(dense_adj, pred)
-                sum_ap_valid += multiple_ap_score(dense_adj, pred)
+                sum_auc_valid += multiple_roc_auc_score(dense_adj, pred.detach())
+                sum_ap_valid += multiple_ap_score(dense_adj, pred.detach())
 
         avg_epoch_loss_train = sum_loss_train / len(train_loader)
         avg_epoch_kl_train = sum_kl_train / len(train_loader)
