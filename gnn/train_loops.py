@@ -193,14 +193,14 @@ def graph_classification_train_loop(model, optimizer, loss_fn, num_epochs, train
 def multiple_roc_auc_score(x_true, x_pred):
     """List of matrices"""
     return np.array([roc_auc_score(
-        _adj.numpy().flatten(),
+        _adj.cpu().numpy().flatten(),
         _pred.cpu().numpy().flatten()) for
         _adj, _pred in zip(x_true, x_pred)]).mean()
 
 def multiple_ap_score(x_true, x_pred):
     """List of matrices"""
     return np.array([average_precision_score(
-        _adj.numpy().flatten(),
+        _adj.cpu().numpy().flatten(),
         _pred.cpu().numpy().flatten()) for
         _adj, _pred in zip(x_true, x_pred)]).mean()
 
