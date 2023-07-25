@@ -17,6 +17,7 @@ try:
     parser.add_argument("-feat", "--use_node_features", action="store_false", help="Use node features in my dataset")
     parser.add_argument("-e", "--epochs", type=int, default=10, help="Number of epochs")
     parser.add_argument("-p", "--patience", type=int, default=10, help="Patience")
+    parser.add_argument("-pf", "--print_freq", type=int, default=1, help="Patience")
 
     args = parser.parse_args()
     config = vars(args)
@@ -24,12 +25,14 @@ try:
     USE_NODE_FEATURES = config["use_node_features"]
     NUM_EPOCHS = config["epochs"]
     PATIENCE = config["patience"]
+    PRINT_FREQ = config["print_freq"]
     print(config)
 except:
     print("Setting default values, argparser failed!")
     USE_NODE_FEATURES = True
     NUM_EPOCHS = 10
     PATIENCE = 10
+    PRINT_FREQ = 1
 
 # %% Load dataset
 dataset = VGRNNTestDataset(use_features=USE_NODE_FEATURES)
