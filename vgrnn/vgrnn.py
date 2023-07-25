@@ -71,7 +71,7 @@ class VGRNN(torch.nn.Module):
         self.rnn = Graph_GRU(h_dim + h_dim, h_dim, n_layers, bias)
 
         # Encoder: 2-layered GIN
-        self.enc = GINConv(Sequential(Linear(h_dim + h_dim, h_dim), ReLU()))
+        self.enc = ModuleList(GINConv(Sequential(Linear(h_dim + h_dim, h_dim), ReLU())))
         self.enc_mean = GCNConv(h_dim, z_dim)
         self.enc_std = GINConv(Sequential(Linear(h_dim, z_dim), Softplus()))
 
