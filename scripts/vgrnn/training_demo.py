@@ -30,8 +30,8 @@ try:
 except:
     print("Setting default values, argparser failed!")
     USE_NODE_FEATURES = True
-    NUM_EPOCHS = 10
-    PATIENCE = 10
+    NUM_EPOCHS = 2
+    PATIENCE = 2
     PRINT_FREQ = 1
 
 # %% Load dataset
@@ -64,3 +64,5 @@ history = vgrnn_train_loop(model=vgrnn_model, optimizer=optimizer, num_epochs=NU
 fig = plot_vgrnn_training_result(history=history)
 os.makedirs("./plots", exist_ok=True)
 fig.savefig("./plots/vgrnn_training.pdf")
+
+# %%

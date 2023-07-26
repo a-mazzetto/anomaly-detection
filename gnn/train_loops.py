@@ -197,7 +197,7 @@ def multiple_roc_auc_score(x_true, x_pred):
     return np.array([roc_auc_score(
         _adj.cpu().numpy().flatten(),
         sigmoid(_pred.cpu().numpy().flatten())) for
-        _adj, _pred in zip(x_true, x_pred)]).mean()
+        _adj, _pred in zip(x_true, x_pred)])
 
 def multiple_ap_score(x_true, x_pred):
     """List of matrices"""
@@ -206,28 +206,28 @@ def multiple_ap_score(x_true, x_pred):
     return np.array([average_precision_score(
         _adj.cpu().numpy().flatten(),
         sigmoid(_pred.cpu().numpy().flatten())) for
-        _adj, _pred in zip(x_true, x_pred)]).mean()
+        _adj, _pred in zip(x_true, x_pred)])
 
 def vgrnn_train_loop(model, optimizer, num_epochs, train_loader, val_loader, early_stopping,
-                     best_model_path=None, print_freq=None, device=None):
+                     best_model_path=None, print_freq=None, device=None, n_graphs = 4):
     """pytorch training loop for VGRNN. Deals with sending to device internally"""
     if device is None:
         device = select_device()
     model.to(device)
 
     epoch_losses_train, epoch_kls_train, epoch_nlls_train = [], [], []
-    epoch_auc_train, epoch_ap_train = [], []
+    epoch_auc_train, epoch_ap_train = np.ndarray(shape=(0, n_graphs)), np.ndarray(shape=(0, n_graphs))
     epoch_losses_valid, epoch_kls_valid, epoch_nlls_valid = [], [], []
-    epoch_auc_valid, epoch_ap_valid = [], []
+    epoch_auc_valid, epoch_ap_valid = np.ndarray(shape=(0, n_graphs)), np.ndarray(shape=(0, n_graphs))
 
     # Initialize metrics
     
     for epoch in range(num_epochs):
         # initialize train and validation loss to 0
         sum_loss_train, sum_kl_train, sum_nll_train = 0.0, 0.0, 0.0
-        sum_auc_train, sum_ap_train = 0.0, 0.0
+        sum_auc_train, sum_ap_train = np.zeros(shape=(1, n_graphs)), np.zeros(shape=(1, n_graphs))
         sum_loss_valid, sum_kl_valid, sum_nll_valid = 0.0, 0.0, 0.0
-        sum_auc_valid, sum_ap_valid = 0.0, 0.0
+        sum_auc_valid, sum_ap_valid = np.zeros(shape=(1, n_graphs)), np.zeros(shape=(1, n_graphs))
 
         model.train()
 
@@ -306,14 +306,14 @@ def vgrnn_train_loop(model, optimizer, num_epochs, train_loader, val_loader, ear
         epoch_losses_train.append(avg_epoch_loss_train)
         epoch_kls_train.append(avg_epoch_kl_train)
         epoch_nlls_train.append(avg_epoch_nll_train)
-        epoch_auc_train.append(avg_epoch_auc_train)
-        epoch_ap_train.append(avg_epoch_ap_train)
+        epoch_auc_train = np.vstack((epoch_auc_train, avg_epoch_auc_train))
+        epoch_ap_train = np.vstack((epoch_ap_train, avg_epoch_ap_train))
         
         epoch_losses_valid.append(avg_epoch_loss_valid)
         epoch_kls_valid.append(avg_epoch_kl_valid)
         epoch_nlls_valid.append(avg_epoch_nll_valid)
-        epoch_auc_valid.append(avg_epoch_auc_valid)
-        epoch_ap_valid.append(avg_epoch_ap_valid)
+        epoch_auc_valid = np.vstack((epoch_auc_valid, avg_epoch_auc_valid))
+        epoch_ap_valid = np.vstack((epoch_ap_valid, avg_epoch_ap_valid))
 
         if early_stopping.min_valid_loss >= avg_epoch_loss_valid:
             best_model_state_dict = deepcopy(model.state_dict())
@@ -378,12 +378,14 @@ def plot_vgrnn_training_result(history: List[dict]):
     
     COLORS = ["blue", "red", "green", "cyan", "magenta"]
 
-    fig, ax = plt.subplots(nrows=2, ncols=2)
+    fig, ax = plt.subplots(nrows=3, ncols=2)
     fig.tight_layout()
     ax[0, 0].set_title('Loss')
     ax[0, 1].set_title('Loss valid')
-    ax[1, 0].set_title('Metrics')
-    ax[1, 1].set_title('Metrics valid')
+    ax[1, 0].set_title('AUC')
+    ax[1, 1].set_title('AUC valid')
+    ax[2, 0].set_title('AP')
+    ax[2, 1].set_title('AP valid')
     _ = [axis.grid() for axis in ax.flatten()]
 
     ax[0, 0].plot(history['loss'], alpha=0.2, color=COLORS[0])
@@ -400,15 +402,21 @@ def plot_vgrnn_training_result(history: List[dict]):
     ax[0, 1].plot(moving_average(history['val_kl'], 10), color=COLORS[1], label="KL")
     ax[0, 1].plot(moving_average(history['val_nll'], 10), color=COLORS[2], label="NLL")
 
-    ax[1, 0].plot(history['auc'], alpha=0.2, color=COLORS[0])
-    ax[1, 0].plot(history['ap'], alpha=0.2, color=COLORS[1])
-    ax[1, 0].plot(moving_average(history['auc'], 10), color=COLORS[0], label="AUC")
-    ax[1, 0].plot(moving_average(history['ap'], 10), color=COLORS[1], label="AP")
+    for idx in range(history['auc'].shape[1]):
+        ax[1, 0].plot(history['auc'][:, idx], alpha=0.2, color=COLORS[idx])
+        ax[1, 0].plot(moving_average(history['auc'][:, idx], 10), color=COLORS[idx], label=f"AUC t={idx}")
 
-    ax[1, 1].plot(history['val_auc'], alpha=0.2, color=COLORS[0])
-    ax[1, 1].plot(history['val_ap'], alpha=0.2, color=COLORS[1])
-    ax[1, 1].plot(moving_average(history['val_auc'], 10), color=COLORS[0], label="AUC")
-    ax[1, 1].plot(moving_average(history['val_ap'], 10), color=COLORS[1], label="AP")
+    for idx in range(history['val_auc'].shape[1]):
+        ax[1, 1].plot(history['val_auc'][:, idx], alpha=0.2, color=COLORS[idx])
+        ax[1, 1].plot(moving_average(history['val_auc'][:, idx], 10), color=COLORS[idx], label=f"AUC t={idx}")
+
+    for idx in range(history['ap'].shape[1]):
+        ax[2, 0].plot(history['ap'][:, idx], alpha=0.2, color=COLORS[idx])
+        ax[2, 0].plot(moving_average(history['ap'][:, idx], 10), color=COLORS[idx], label=f"AP t={idx}")
+
+    for idx in range(history['val_ap'].shape[1]):
+        ax[2, 1].plot(history['val_ap'][:, idx], alpha=0.2, color=COLORS[idx])
+        ax[2, 1].plot(moving_average(history['val_ap'][:, idx], 10), color=COLORS[idx], label=f"AP t={idx}")
 
     _ = [axis.legend() for axis in ax.flatten()]
 
