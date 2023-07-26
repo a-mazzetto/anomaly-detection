@@ -1,11 +1,12 @@
 """VGRNN imlementation following https://arxiv.org/abs/1908.09710"""
 import torch
-from torch.nn import Sequential, Linear, ReLU, Softplus, ModuleList
+from torch.nn import Sequential, Linear, ReLU, Softplus, ModuleList, Dropout
 from torch_geometric.nn import Sequential as GeomSequential
 from torch_geometric.nn.models import GCN, GraphSAGE, GIN
 from torch_geometric.nn.conv import GCNConv, SAGEConv, GINConv
 from torch.autograd import Variable
 import torch.nn.functional as F
+from torch_geometric.nn import global_mean_pool
 
 class Graph_GRU(torch.nn.Module):
     def __init__(self, input_size, hidden_size, n_layer, bias=True):
@@ -71,12 +72,29 @@ class VGRNN(torch.nn.Module):
         self.rnn = Graph_GRU(h_dim + h_dim, h_dim, n_layers, bias)
 
         # Encoder: 2-layered GIN
-        self.enc = GINConv(Sequential(Linear(h_dim + h_dim, h_dim), ReLU()))
-        self.enc_mean = GCNConv(h_dim, z_dim)
-        self.enc_std = GINConv(Sequential(Linear(h_dim, z_dim), Softplus()))
+        self.enc = GIN(
+            in_channels=h_dim + h_dim,
+            hidden_channels=h_dim,
+            num_layers=10,
+            dropout=0.1, act="relu")
+        self.enc_mean = Sequential(
+            Linear(h_dim, 64, bias=bias),
+            Linear(64, 64, bias=bias),
+            Linear(64, z_dim, bias=bias),
+            Dropout(p=0.1))
+        self.enc_std = Sequential(
+            Linear(h_dim, 64, bias=bias),
+            Linear(64, 64, bias=bias),
+            Linear(64, z_dim, bias=bias),
+            Dropout(p=0.1),
+            Softplus())
 
         # Prior: 2-layered MLP
-        self.prior = Sequential(Linear(h_dim, h_dim), ReLU())
+        self.prior = Sequential(
+            Linear(h_dim, 64, bias=bias),
+            Linear(64, 64, bias=bias),
+            Linear(64, h_dim, bias=bias),
+            Dropout(p=0.1))
         self.prior_mean = Sequential(Linear(h_dim, z_dim))
         self.prior_std = Sequential(Linear(h_dim, z_dim), Softplus())
     
@@ -99,8 +117,8 @@ class VGRNN(torch.nn.Module):
 
             #encoder
             enc_t = self.enc(torch.cat([phi_x_t, h[-1]], 1), edge_idx_list[t])
-            enc_mean_t = self.enc_mean(enc_t, edge_idx_list[t])
-            enc_std_t = self.enc_std(enc_t, edge_idx_list[t])
+            enc_mean_t = self.enc_mean(enc_t)
+            enc_std_t = self.enc_std(enc_t)
             
             #prior
             prior_t = self.prior(h[-1])
