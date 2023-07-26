@@ -48,7 +48,7 @@ test_loader = DataLoader(test_dataset, batch_size=32)
 
 # %% Model
 
-vgrnn_model = VGRNN(x_dim=dataset.x.size(-1), h_dim=32, z_dim=16, n_layers=1, eps=1e-10, bias=True)
+vgrnn_model = VGRNN(x_dim=dataset.x.size(-1), h_dim=32, z_dim=16, n_layers=5, eps=1e-10, bias=True)
 
 optimizer = torch.optim.Adam(vgrnn_model.parameters(), lr=1e-2)
 
@@ -57,7 +57,7 @@ optimizer = torch.optim.Adam(vgrnn_model.parameters(), lr=1e-2)
 history = vgrnn_train_loop(model=vgrnn_model, optimizer=optimizer, num_epochs=NUM_EPOCHS,
                            train_loader=train_dataset, val_loader=test_dataset,
                            early_stopping=EarlyStopping(patience=PATIENCE),
-                           best_model_path="./data/vgrnn_demo_model.pt", print_freq=10)
+                           best_model_path="./data/vgrnn_demo_model.pt", print_freq=PRINT_FREQ)
 
 # %% Plotting
 

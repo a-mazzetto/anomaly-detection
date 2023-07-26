@@ -92,7 +92,7 @@ class VGRNN(torch.nn.Module):
         if hidden_in is None:
             h = torch.zeros(self.n_layers, x.size(1), self.h_dim, requires_grad=True).to(x.device)
         else:
-            h = torch.tensor(hidden_in, requires_grad=True).to(x.device)
+            h = hidden_in.clone().detach().requires_grad_(True).to(x.device)
         
         for t in range(x.size(0)):
             phi_x_t = self.phi_x(x[t])

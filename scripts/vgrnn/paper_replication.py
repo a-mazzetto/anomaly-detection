@@ -331,6 +331,12 @@ seq_start = 0
 seq_end = seq_len - 3
 tst_after = 0
 
+history = dict(
+    loss=[],
+    kld=[],
+    nll=[],
+    auc=[],
+    ap=[])
 for k in range(1000):
     optimizer.zero_grad()
     start_time = time.time()
@@ -340,6 +346,9 @@ for k in range(1000):
     loss = kld_loss + nll_loss
     loss.backward()
     optimizer.step()
+    history['loss'].append(loss.item())
+    history['kld'].append(kld_loss.item())
+    history['nll'].append(nll_loss.item())
     
     torch.nn.utils.clip_grad_norm_(vgrnn_model.parameters(), clip)
     
@@ -359,6 +368,8 @@ for k in range(1000):
                                                                adj_orig_dense_list[seq_end:seq_len],
                                                                pri_means)
         
+        history['auc'].append(np.mean(np.array(auc_scores_prd)))
+        history['ap'].append(np.mean(np.array(ap_scores_prd))) 
     
     print('epoch: ', k)
     print('kld_loss =', kld_loss.mean().item())

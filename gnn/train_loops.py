@@ -192,16 +192,20 @@ def graph_classification_train_loop(model, optimizer, loss_fn, num_epochs, train
 
 def multiple_roc_auc_score(x_true, x_pred):
     """List of matrices"""
+    def sigmoid(x):
+        return 1 / (1 + np.exp(-x))
     return np.array([roc_auc_score(
         _adj.cpu().numpy().flatten(),
-        _pred.cpu().numpy().flatten()) for
+        sigmoid(_pred.cpu().numpy().flatten())) for
         _adj, _pred in zip(x_true, x_pred)]).mean()
 
 def multiple_ap_score(x_true, x_pred):
     """List of matrices"""
+    def sigmoid(x):
+        return 1 / (1 + np.exp(-x))
     return np.array([average_precision_score(
         _adj.cpu().numpy().flatten(),
-        _pred.cpu().numpy().flatten()) for
+        sigmoid(_pred.cpu().numpy().flatten())) for
         _adj, _pred in zip(x_true, x_pred)]).mean()
 
 def vgrnn_train_loop(model, optimizer, num_epochs, train_loader, val_loader, early_stopping,
