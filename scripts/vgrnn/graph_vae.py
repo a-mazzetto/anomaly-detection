@@ -125,8 +125,8 @@ class InnerProductDecoder(torch.nn.Module):
     
     def forward(self, inp):
         inp = self.dropout(inp)
-        x = torch.transpose(inp, dim0=0, dim1=1)
-        x = torch.mm(inp, x)
+        x = torch.transpose(inp, dim0=-2, dim1=-1)
+        x = torch.matmul(inp, x)
         return self.act()(x)
 
 # decoder = InnerProductDecoder()
@@ -151,12 +151,7 @@ class VAE(torch.nn.Module):
 
     def forward(self, data):
         mu, std = self.encoder(data)
-        if self.simple_prior:
-            q = dist.Normal(mu, std)
-            z = q.rsample()
-        else:
-            epsilon = self.prior.sample((mu.size(0),))
-            z = mu + torch.sqrt(std) * epsilon
+        z = self.sampler(mu, std)
         if data.batch is None:
             batch = torch.zeros(data.x.size(0), dtype=torch.int)
         else:
@@ -183,6 +178,15 @@ class VAE(torch.nn.Module):
             kl_loss = self._gaussian_mixture_kl(mu, std)
         return nll_loss, kl_loss, adj_pred, dense_adj
     
+    def sampler(self, mean, std):
+        if self.simple_prior:
+            q = dist.Normal(mean, std)
+            z = q.rsample()
+        else:
+            epsilon = self.prior.sample((mean.size(0),))
+            z = mean + torch.sqrt(std) * epsilon
+        return z
+
     def _bernoulli_loss(self, y_pred, y_true):
         return self._bceloss(y_pred, y_true)
     
@@ -199,23 +203,23 @@ class VAE(torch.nn.Module):
 # vae_call_batch = vae(next(iter(train_loader)))
 
 # %% Kick training
+if __name__ == "__main__":
+    device = select_device()
 
-device = select_device()
+    model = VAE(device=device, prior_modes=N_PRIOR_MODES, latent_dim=LATENT_DIM, hidden_dim=HIDDEN_DIM, n_gin_layers=N_GIN_LAYERS)
+    optimizer = torch.optim.Adam(model.parameters(), 1e-5)
 
-model = VAE(device=device, prior_modes=N_PRIOR_MODES, latent_dim=LATENT_DIM, hidden_dim=HIDDEN_DIM, n_gin_layers=N_GIN_LAYERS)
-optimizer = torch.optim.Adam(model.parameters(), 1e-5)
-
-history = vae_training_loop(model=model, optimizer=optimizer, num_epochs=NUM_EPOCHS,
-    train_dl=train_loader, val_dl=test_loader, early_stopping=EarlyStopping(patience=PATIENCE),
-    best_model_path="./data/vae_demo.pt", print_freq=PRINT_FREQ, device=device)
+    history = vae_training_loop(model=model, optimizer=optimizer, num_epochs=NUM_EPOCHS,
+        train_dl=train_loader, val_dl=test_loader, early_stopping=EarlyStopping(patience=PATIENCE),
+        best_model_path="./data/vae_demo.pt", print_freq=PRINT_FREQ, device=device)
 # %% Validate
 
 # vae.eval()
 # example = vae(dataset[10])
 # %% Plotting
-
-fig = plot_vae_training_results(history=history)
-os.makedirs("./plots", exist_ok=True)
-fig.savefig("./plots/vae_training.pdf")
+if __name__ == "__main__":
+    fig = plot_vae_training_results(history=history)
+    os.makedirs("./plots", exist_ok=True)
+    fig.savefig("./plots/vae_training.pdf")
 
 # %%
