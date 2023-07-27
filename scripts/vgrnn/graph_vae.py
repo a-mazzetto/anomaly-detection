@@ -102,7 +102,7 @@ def get_prior(device, num_modes, latent_dim):
 class Encoder(torch.nn.Module):
     def __init__(self, latent_dim=8, hidden_dim=16, n_gin_layers=10):
         super().__init__()
-        self.gin = GIN(in_channels=-1, hidden_channels=hidden_dim, num_layers=n_gin_layers)
+        self.gin = GIN(in_channels=-1, hidden_channels=hidden_dim, num_layers=n_gin_layers, dropout=0.2)
         self.mean = torch.nn.Linear(hidden_dim, latent_dim)
         self.std = torch.nn.Sequential(
             torch.nn.Linear(hidden_dim, latent_dim),
@@ -121,8 +121,10 @@ class InnerProductDecoder(torch.nn.Module):
     def __init__(self, act=torch.nn.Sigmoid):
         super().__init__()
         self.act = act
+        self.dropout = torch.nn.Dropout(p=0.2)
     
     def forward(self, inp):
+        inp = self.dropout(inp)
         x = torch.transpose(inp, dim0=0, dim1=1)
         x = torch.mm(inp, x)
         return self.act()(x)
