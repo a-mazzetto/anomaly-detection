@@ -362,6 +362,7 @@ def vae_training_loop(model, optimizer, num_epochs, train_dl, val_dl, early_stop
 
         model.train()
         for train_input in train_dl:
+            train_input.to(device)
             optimizer.zero_grad()
             nll, kl, _, _ = model(train_input)
             elbo = nll + kl
@@ -373,6 +374,7 @@ def vae_training_loop(model, optimizer, num_epochs, train_dl, val_dl, early_stop
             model.eval()
 
             for val_input in val_dl:
+                val_input.to(device)
                 nll, kl, _, _ = model(val_input)
                 elbo = nll + kl
                 val_loss += elbo / len(val_input)
