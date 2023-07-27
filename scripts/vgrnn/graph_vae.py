@@ -12,6 +12,7 @@ from gnn_data_generation.three_graph_families_dataset import ThreeGraphFamiliesD
 
 from gnn.train_loops import vae_training_loop, plot_vae_training_results
 from gnn.early_stopping import EarlyStopping
+from cuda.cuda_utils import select_device
 
 # %% Initialization
 try:
@@ -74,7 +75,7 @@ test_loader = DataLoader(test_dataset, batch_size=32)
 # %% Prior distribution
 latent_dim = 8
 
-def get_prior(num_modes, latent_dim):
+def get_prior(device, num_modes, latent_dim):
     """
     This function should create an instance of a MixtureSameFamily distribution
     according to the above specification.
@@ -82,10 +83,10 @@ def get_prior(num_modes, latent_dim):
     be used to define the distribution.
     Your function should then return the distribution instance.
     """
-    probs = torch.ones(num_modes) / num_modes
+    probs = torch.ones(num_modes, device=device) / num_modes
     categorical = dist.Categorical(probs=probs)
-    loc = torch.randn((num_modes, latent_dim))
-    scale = torch.ones((num_modes, latent_dim))
+    loc = torch.randn((num_modes, latent_dim), device=device)
+    scale = torch.ones((num_modes, latent_dim), device=device)
     scale = torch.nn.functional.softplus(scale)
     prior = dist.MixtureSameFamily(
         mixture_distribution=categorical,
@@ -131,13 +132,13 @@ class InnerProductDecoder(torch.nn.Module):
 
 # %% VAE
 class VAE(torch.nn.Module):
-    def __init__(self, latent_dim=8, hidden_dim=16, n_gin_layers=10, prior_modes=0):
+    def __init__(self, device, latent_dim=8, hidden_dim=16, n_gin_layers=10, prior_modes=0):
         super().__init__()
 
         # prior
         self.simple_prior = prior_modes < 1
-        self.prior = dist.Normal(loc=torch.zeros(latent_dim), scale=1.) if \
-            self.simple_prior else get_prior(num_modes=prior_modes, latent_dim=LATENT_DIM)
+        self.prior = dist.Normal(loc=torch.zeros(latent_dim).to(device), scale=1.) if \
+            self.simple_prior else get_prior(device, num_modes=prior_modes, latent_dim=LATENT_DIM)
 
         # encoder, decoder
         self.encoder = Encoder(latent_dim=latent_dim, hidden_dim=hidden_dim, n_gin_layers=n_gin_layers)
@@ -183,9 +184,6 @@ class VAE(torch.nn.Module):
     def _gaussian_kl(self, mean, scale):
         q = dist.Normal(mean, scale)
         # Sum across all
-        self.prior.loc.cuda()
-        self.prior.scale.cuda()
-
         print(mean.device)
         print(scale.device)
         print(self.prior.loc.device)
@@ -201,12 +199,14 @@ class VAE(torch.nn.Module):
 
 # %% Kick training
 
-model = VAE(prior_modes=N_PRIOR_MODES, latent_dim=LATENT_DIM, hidden_dim=HIDDEN_DIM, n_gin_layers=N_GIN_LAYERS)
+device = select_device()
+
+model = VAE(device=device, prior_modes=N_PRIOR_MODES, latent_dim=LATENT_DIM, hidden_dim=HIDDEN_DIM, n_gin_layers=N_GIN_LAYERS)
 optimizer = torch.optim.Adam(model.parameters(), 1e-5)
 
 history = vae_training_loop(model=model, optimizer=optimizer, num_epochs=NUM_EPOCHS,
     train_dl=train_loader, val_dl=test_loader, early_stopping=EarlyStopping(patience=PATIENCE),
-    best_model_path="./data/vae_demo.pt", print_freq=PRINT_FREQ)
+    best_model_path="./data/vae_demo.pt", print_freq=PRINT_FREQ, device=device)
 # %% Validate
 
 # vae.eval()
