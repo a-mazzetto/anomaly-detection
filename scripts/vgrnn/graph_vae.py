@@ -93,9 +93,9 @@ def get_prior(num_modes, latent_dim):
     return prior
 
 # Simple Gaussian
-prior = dist.Normal(loc=torch.zeros(latent_dim), scale=1.)
+# prior = dist.Normal(loc=torch.zeros(latent_dim), scale=1.)
 # Gaussian Mixture
-prior = get_prior(num_modes=N_PRIOR_MODES, latent_dim=LATENT_DIM)
+# prior = get_prior(num_modes=N_PRIOR_MODES, latent_dim=LATENT_DIM)
 
 # %% Encoder
 class Encoder(torch.nn.Module):
@@ -126,8 +126,8 @@ class InnerProductDecoder(torch.nn.Module):
         x = torch.mm(inp, x)
         return self.act()(x)
 
-decoder = InnerProductDecoder()
-decoder(prior.sample(torch.Size([2])))
+# decoder = InnerProductDecoder()
+# decoder(prior.sample(torch.Size([2])))
 
 # %% VAE
 class VAE(torch.nn.Module):
@@ -188,9 +188,9 @@ class VAE(torch.nn.Module):
     def _gaussian_mixture_kl(self, loc, scale):
         return -0.5 * (1 + scale - loc ** 2 - scale).sum()
 
-vae = VAE(prior_modes=N_PRIOR_MODES, latent_dim=LATENT_DIM, hidden_dim=HIDDEN_DIM)
-vae_call = vae(dataset[0])
-vae_call_batch = vae(next(iter(train_loader)))
+# vae = VAE(prior_modes=N_PRIOR_MODES, latent_dim=LATENT_DIM, hidden_dim=HIDDEN_DIM)
+# vae_call = vae(dataset[0])
+# vae_call_batch = vae(next(iter(train_loader)))
 
 # %% Kick training
 
@@ -202,8 +202,8 @@ history = vae_training_loop(model=model, optimizer=optimizer, num_epochs=NUM_EPO
     best_model_path="./data/vae_demo.pt", print_freq=PRINT_FREQ)
 # %% Validate
 
-vae.eval()
-example = vae(dataset[10])
+# vae.eval()
+# example = vae(dataset[10])
 # %% Plotting
 
 fig = plot_vae_training_results(history=history)
