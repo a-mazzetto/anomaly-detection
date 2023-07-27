@@ -149,7 +149,7 @@ class VAE(torch.nn.Module):
     def forward(self, data):
         mu, std = self.encoder(data)
         if self.simple_prior:
-            q = dist.Normal(mu, std).to(data.device)
+            q = dist.Normal(mu, std)
             z = q.rsample()
         else:
             epsilon = self.prior.sample((mu.size(0),))
