@@ -149,10 +149,10 @@ class VAE(torch.nn.Module):
     def forward(self, data):
         mu, std = self.encoder(data)
         if self.simple_prior:
-            q = dist.Normal(mu, std)
+            q = dist.Normal(mu, std).to(data.device)
             z = q.rsample()
         else:
-            epsilon = prior.sample((mu.size(0),))
+            epsilon = self.prior.sample((mu.size(0),))
             z = mu + torch.sqrt(std) * epsilon
         if data.batch is None:
             batch = torch.zeros(data.x.size(0), dtype=torch.int)
