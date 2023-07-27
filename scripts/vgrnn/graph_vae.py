@@ -171,6 +171,9 @@ class VAE(torch.nn.Module):
 
         # compute losses
         dense_adj = to_dense_adj(data.edge_index, data.batch)
+        assert adj_pred.shape == dense_adj.shape
+        assert not torch.any(torch.isnan(adj_pred))
+        assert not torch.any(torch.isnan(dense_adj))
         nll_loss = self._bernoulli_loss(adj_pred, dense_adj)
         if self.simple_prior:
             kl_loss = self._gaussian_kl(mu, std)
