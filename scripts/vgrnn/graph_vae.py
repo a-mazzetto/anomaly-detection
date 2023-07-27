@@ -183,8 +183,8 @@ class VAE(torch.nn.Module):
     def _gaussian_kl(self, mean, scale):
         q = dist.Normal(mean, scale)
         # Sum across all
-        self.prior.loc.to(mean.device)
-        self.prior.scale.to(mean.device)
+        self.prior.loc.cuda()
+        self.prior.scale.cuda()
 
         print(mean.device)
         print(scale.device)
