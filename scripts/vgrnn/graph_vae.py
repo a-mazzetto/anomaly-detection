@@ -165,7 +165,7 @@ class VAE(torch.nn.Module):
         adj_pred = torch.stack(
             [torch.nn.functional.pad(
                 self.decoder(_z),
-                (0, max_nodes - _z.size(0), 0, max_nodes - _z.size(0)),
+                (0, max(0, max_nodes - _z.size(0)), max(0, 0, max_nodes - _z.size(0))),
                 mode="constant",
                 value=0) for _z in z], dim=0)
 
