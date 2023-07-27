@@ -183,6 +183,8 @@ class VAE(torch.nn.Module):
     def _gaussian_kl(self, mean, scale):
         q = dist.Normal(mean, scale)
         # Sum across all
+        self.prior.loc.to(mean.device)
+        self.prior.scale.to(mean.device)
         return dist.kl_divergence(q, self.prior).sum()
     
     def _gaussian_mixture_kl(self, loc, scale):
