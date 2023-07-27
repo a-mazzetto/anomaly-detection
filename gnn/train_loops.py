@@ -340,6 +340,66 @@ def vgrnn_train_loop(model, optimizer, num_epochs, train_loader, val_loader, ear
 
     return history
 
+def vae_training_loop(model, optimizer, num_epochs, train_dl, val_dl, early_stopping,
+                            best_model_path=None, print_freq=None, device=None):
+    """
+    This function should implement the entire training loop for the VAE model.
+    The function should return a history dictionary as described above.
+    """
+    if device is None:
+        device = select_device()
+    model.to(device)
+
+    history = {'loss': [], 'val_loss': []}
+
+    train_losses = []
+    val_losses = []
+    
+    for epoch in range(num_epochs):
+ 
+        train_loss = 0.0
+        val_loss = 0.0
+
+        model.train()
+        for train_input in train_dl:
+            optimizer.zero_grad()
+            nll, kl, _, _ = model(train_input)
+            elbo = nll + kl
+            elbo.backward()
+            optimizer.step()
+            train_loss += elbo.item() / len(train_input)
+
+        with torch.no_grad():
+            model.eval()
+
+            for val_input in val_dl:
+                nll, kl, _, _ = model(val_input)
+                elbo = nll + kl
+                val_loss += elbo / len(val_input)
+
+        train_loss = train_loss / len(train_dl)
+        val_loss = val_loss / len(val_dl)
+
+        train_losses.append(train_loss)
+        val_losses.append(val_loss)
+        
+        if print_freq is not None and (epoch + 1) % print_freq == 0:
+            print('Epoch: {} - Train Loss: {:.4f} - Validation Loss: {:.4f}'.format(epoch + 1, train_loss, val_loss))
+        
+        if early_stopping.min_valid_loss >= val_loss:
+            best_model_state_dict = deepcopy(model.state_dict())
+
+        if early_stopping.early_stop(val_loss):
+            break
+    
+    if best_model_path is not None:
+        torch.save(best_model_state_dict, best_model_path)
+
+    history['loss'] = train_losses
+    history['val_loss'] = val_losses
+
+    return history
+
 # Plotting
 def plot_training_results(histories: List[dict], names=None):
     def moving_average(x, w):
@@ -419,5 +479,25 @@ def plot_vgrnn_training_result(history: List[dict]):
         ax[2, 1].plot(moving_average(history['val_ap'][:, idx], 10), color=COLORS[idx], label=f"AP t={idx}")
 
     _ = [axis.legend() for axis in ax.flatten()]
+
+    return fig
+
+def plot_vae_training_results(history: dict):
+    def moving_average(x, w):
+        return np.convolve(x, np.ones(w), 'valid') / w
+    
+    COLORS = ["blue", "red", "green", "cyan", "magenta"]
+
+    fig, ax = plt.subplots(nrows=1, ncols=2)
+    fig.tight_layout()
+    ax[0].set_title('Train loss')
+    ax[1].set_title('Test loss')
+    _ = [axis.grid() for axis in ax.flatten()]
+
+    ax[0].plot(history['loss'], alpha=0.2, color=COLORS[0])
+    ax[0].plot(moving_average(history['loss'], 10), color=COLORS[0])
+
+    ax[1].plot(history['val_loss'], alpha=0.2, color=COLORS[0])
+    ax[1].plot(moving_average(history['val_loss'], 10), color=COLORS[0])
 
     return fig
