@@ -89,7 +89,8 @@ def graph_classification_train_loop(model, optimizer, loss_fn, num_epochs, train
             break
     
     if best_model_path is not None:
-        torch.save(best_model_state_dict, best_model_path)
+        model.load_state_dict(best_model_state_dict)
+        torch.save(model, best_model_path)
 
     history = {
         'loss': epoch_losses_train,
@@ -179,7 +180,8 @@ def graph_classification_train_loop(model, optimizer, loss_fn, num_epochs, train
             break
     
     if best_model_path is not None:
-        torch.save(best_model_state_dict, best_model_path)
+        model.load_state_dict(best_model_state_dict)
+        torch.save(model, best_model_path)
 
     history = {
         'loss': epoch_losses_train,
@@ -322,7 +324,8 @@ def vgrnn_train_loop(model, optimizer, num_epochs, train_loader, val_loader, ear
             break
     
     if best_model_path is not None:
-        torch.save(best_model_state_dict, best_model_path)
+        model.load_state_dict(best_model_state_dict)
+        torch.save(model, best_model_path)
 
     history = {
         'loss': epoch_losses_train,
@@ -395,7 +398,8 @@ def vae_training_loop(model, optimizer, num_epochs, train_dl, val_dl, early_stop
             break
     
     if best_model_path is not None:
-        torch.save(best_model_state_dict, best_model_path)
+        model.load_state_dict(best_model_state_dict)
+        torch.save(model, best_model_path)
 
     history['loss'] = train_losses
     history['val_loss'] = val_losses
