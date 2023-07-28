@@ -5,6 +5,7 @@ import json
 import argparse
 import subprocess
 from warnings import showwarning
+import numpy as np
 from processes.pitman_yor_pvalue import PitmanYorPValue, StreamingPitmanYorPValue
 from processes.ddcrp_pvalue import DDCRPPValue
 from pvalues.combiners import fisher_pvalues_combiner
@@ -73,9 +74,9 @@ def source_conditional_process(user_args=None):
                     x_given_y_pvalue = py_pvalue.pvalue_and_update(source, float(time))
                 # Combine p-values
                 if t_pvalue != "None":
-                    score = fisher_pvalues_combiner(float(y_pvalue), x_given_y_pvalue, float(t_pvalue))
+                    score = fisher_pvalues_combiner(np.array([float(y_pvalue), x_given_y_pvalue, float(t_pvalue)]))
                 else:
-                    score = fisher_pvalues_combiner(float(y_pvalue), x_given_y_pvalue)
+                    score = fisher_pvalues_combiner(np.array([float(y_pvalue), x_given_y_pvalue]))
                 out_file.write("\t".join(["_".join((source, dest)), time, anomaly, y_pvalue, str(x_given_y_pvalue), str(score)]) + "\n")
 
     # Sort file

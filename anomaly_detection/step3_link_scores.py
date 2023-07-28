@@ -26,7 +26,7 @@ def link_scores(user_args = None):
                 if link != current_link:
                     if len(current_link) > 0:
                         source, dest = current_link.split("_")
-                        link_score = min_pvalue_combiner(*current_link_scores)
+                        link_score = min_pvalue_combiner(np.array(current_link_scores))
                         time_at_min = current_link_times[np.argmin(current_link_scores)]
                         out_file.write("\t".join([source, dest, str(link_score), str(time_at_min)]) + "\n")
                     current_link = link
@@ -35,7 +35,7 @@ def link_scores(user_args = None):
                 current_link_scores.append(float(score))
                 current_link_times.append(float(time))
         source, dest = current_link.split("_")
-        link_score = min_pvalue_combiner(*current_link_scores)
+        link_score = min_pvalue_combiner(np.array(current_link_scores))
         time_at_min = current_link_times[np.argmin(current_link_scores)]
         out_file.write("\t".join([source, dest, str(link_score), str(time_at_min)]) + "\n")
 
