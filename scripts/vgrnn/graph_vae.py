@@ -96,7 +96,7 @@ def get_prior(device, num_modes, latent_dim):
 # Simple Gaussian
 # prior = dist.Normal(loc=torch.zeros(latent_dim), scale=1.)
 # Gaussian Mixture
-# prior = get_prior(num_modes=N_PRIOR_MODES, latent_dim=LATENT_DIM)
+# prior = get_prior(num_modes=N_PRIOR_MODES, latent_dim=LATENT_DIM, device=torch.device("cpu"))
 
 # %% Encoder
 class Encoder(torch.nn.Module):
@@ -132,6 +132,19 @@ class InnerProductDecoder(torch.nn.Module):
 # decoder = InnerProductDecoder()
 # decoder(prior.sample(torch.Size([2])))
 
+class InnerProductDecoder2(torch.nn.Module):
+    def __init__(self, act=torch.nn.Sigmoid):
+        super().__init__()
+        self.act = act
+        self.dropout = torch.nn.Dropout(p=0.2)
+    
+    def forward(self, ld_in, ud_in):
+        ld_in = self.dropout(ld_in)
+        ud_in = self.dropout(ud_in)
+        ud_in_t = torch.transpose(ud_in, dim0=-2, dim1=-1)
+        x = torch.matmul(ld_in, ud_in_t)
+        return self.act()(x)
+
 # %% VAE
 class VAE(torch.nn.Module):
     def __init__(self, device, latent_dim=8, hidden_dim=16, n_gin_layers=10, prior_modes=0):
@@ -143,28 +156,32 @@ class VAE(torch.nn.Module):
             self.simple_prior else get_prior(device, num_modes=prior_modes, latent_dim=LATENT_DIM)
 
         # encoder, decoder
-        self.encoder = Encoder(latent_dim=latent_dim, hidden_dim=hidden_dim, n_gin_layers=n_gin_layers)
-        self.decoder = InnerProductDecoder()
+        self.encoder_ld = Encoder(latent_dim=latent_dim, hidden_dim=hidden_dim, n_gin_layers=n_gin_layers)
+        self.encoder_ud = Encoder(latent_dim=latent_dim, hidden_dim=hidden_dim, n_gin_layers=n_gin_layers)
+        self.decoder = InnerProductDecoder2()
 
         # self.loss
         self._bceloss = torch.nn.BCELoss(reduction="sum")
 
     def forward(self, data):
-        mu, std = self.encoder(data)
-        z = self.sampler(mu, std)
+        mu_ld, std_ld = self.encoder_ld(data)
+        mu_ud, std_ud = self.encoder_ud(data)
+        z_ld = self.sampler(mu_ld, std_ld)
+        z_ud = self.sampler(mu_ud, std_ud)
         if data.batch is None:
             batch = torch.zeros(data.x.size(0), dtype=torch.int)
         else:
             batch = data.batch
         n_nodes = torch.bincount(batch).tolist()
         max_nodes = max(n_nodes)
-        z = torch.split(z, n_nodes, dim=0)
+        z_ld = torch.split(z_ld, n_nodes, dim=0)
+        z_ud = torch.split(z_ud, n_nodes, dim=0)
         adj_pred = torch.stack(
             [torch.nn.functional.pad(
-                self.decoder(_z),
-                (0, max(0, max_nodes - _z.size(0)), 0, max(0, max_nodes - _z.size(0))),
+                self.decoder(_z_ld, _z_ud),
+                (0, max(0, max_nodes - _z_ld.size(0)), 0, max(0, max_nodes - _z_ld.size(0))),
                 mode="constant",
-                value=0) for _z in z], dim=0)
+                value=0) for _z_ld, _z_ud in zip(z_ld, z_ud)], dim=0)
 
         # compute losses
         dense_adj = to_dense_adj(data.edge_index, data.batch)
@@ -173,9 +190,9 @@ class VAE(torch.nn.Module):
         assert not torch.any(torch.isnan(dense_adj))
         nll_loss = self._bernoulli_loss(adj_pred, dense_adj)
         if self.simple_prior:
-            kl_loss = self._gaussian_kl(mu, std)
+            kl_loss = self._gaussian_kl(mu_ld, std_ld) + self._gaussian_kl(mu_ud, std_ud)
         else:
-            kl_loss = self._gaussian_mixture_kl(mu, std)
+            kl_loss = self._gaussian_mixture_kl(mu_ld, std_ld) + self._gaussian_mixture_kl(mu_ud, std_ud)
         return nll_loss, kl_loss, adj_pred, dense_adj
     
     def sampler(self, mean, std):
@@ -198,7 +215,7 @@ class VAE(torch.nn.Module):
     def _gaussian_mixture_kl(self, loc, scale):
         return -0.5 * (1 + scale - loc ** 2 - scale).sum()
 
-# vae = VAE(prior_modes=N_PRIOR_MODES, latent_dim=LATENT_DIM, hidden_dim=HIDDEN_DIM)
+# vae = VAE(prior_modes=N_PRIOR_MODES, latent_dim=LATENT_DIM, hidden_dim=HIDDEN_DIM, device=torch.device("cpu"))
 # vae_call = vae(dataset[0])
 # vae_call_batch = vae(next(iter(train_loader)))
 
