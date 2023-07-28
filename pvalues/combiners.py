@@ -13,5 +13,5 @@ def min_pvalue_combiner(pvals):
     """Combine p-values using minimum, that is approximately Beta(1, n)"""
     assert isinstance(pvals, np.ndarray), "Expected numpy array"
     n = len(pvals)
-    min_internal = min(pvals)
+    min_internal = np.min(pvals)
     return 1 - (1 - min_internal)**n
