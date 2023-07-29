@@ -78,7 +78,7 @@ def test_class_train_loop(test_name, patience):
     _ = graph_classification_train_loop(
         model=model, optimizer=optimizer, loss_fn=criterion, num_epochs=170, train_loader=train_loader,
         val_loader=test_loader, metric=CrossEntropyAccuracyFromLogits(),
-        early_stopping=EarlyStopping(patience=patience), best_model_path=results_file)
+        early_stopping=EarlyStopping(patience=patience), best_model_path=None)
     
     # Evaluate model on one batch
     pred = model(next(iter(test_loader))).detach().numpy()
