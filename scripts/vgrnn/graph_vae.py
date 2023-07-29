@@ -196,12 +196,8 @@ class VAE(torch.nn.Module):
         return nll_loss, kl_loss, adj_pred, dense_adj
     
     def sampler(self, mean, std):
-        if self.simple_prior:
-            q = dist.Normal(mean, std)
-            z = q.rsample()
-        else:
-            epsilon = self.prior.sample((mean.size(0),))
-            z = mean + torch.sqrt(std) * epsilon
+        epsilon = self.prior.sample((mean.size(0),))
+        z = mean + std * epsilon
         return z
 
     def _bernoulli_loss(self, y_pred, y_true):
@@ -213,7 +209,7 @@ class VAE(torch.nn.Module):
         return dist.kl_divergence(q, self.prior).sum()
     
     def _gaussian_mixture_kl(self, loc, scale):
-        return -0.5 * (1 + scale - loc ** 2 - scale).sum()
+        return -0.5 * (1 + torch.log(scale) - loc ** 2 - scale).sum()
 
 # vae = VAE(prior_modes=N_PRIOR_MODES, latent_dim=LATENT_DIM, hidden_dim=HIDDEN_DIM, device=torch.device("cpu"))
 # vae_call = vae(dataset[0])
