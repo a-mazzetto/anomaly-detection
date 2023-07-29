@@ -209,6 +209,12 @@ class VAE(torch.nn.Module):
         return dist.kl_divergence(q, self.prior).sum()
     
     def _gaussian_mixture_kl(self, loc, scale):
+        # see Appendix B from VAE paper:
+        # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
+        # https://arxiv.org/abs/1312.6114
+        # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
+        # Note: other people experience overflow here
+        # See: https://discuss.pytorch.org/t/kld-loss-goes-nan-during-vae-training/42305/4 
         return -0.5 * (1 + torch.log(scale) - loc ** 2 - scale).sum()
 
 # vae = VAE(prior_modes=N_PRIOR_MODES, latent_dim=LATENT_DIM, hidden_dim=HIDDEN_DIM, device=torch.device("cpu"))
