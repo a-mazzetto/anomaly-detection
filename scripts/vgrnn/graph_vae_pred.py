@@ -41,7 +41,7 @@ def score_given_model(model, datum, plots=True):
 
     # I keep the probs only in the region that were one for either matrix
     locs = (mega_sample > 0.5).type(torch.int).logical_or(y_true)
-    selected_probs = probs[0][locs[0]]
+    selected_probs = probs[locs]
 
     # Calculate p-values
     if len(selected_probs) > 0:
