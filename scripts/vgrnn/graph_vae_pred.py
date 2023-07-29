@@ -94,6 +94,10 @@ plt.show()
 
 plt.hist(results[results[:, -1] == 0][:, 1], density=True, alpha=0.3, range=[0, 1], bins=50)
 plt.hist(results[results[:, -1] == 1][:, 1], density=True, alpha=0.3, range=[0, 1], bins=50)
-plt.title("Min")
+plt.xlabel("p-value")
+plt.legend(
+    ("Data used to create the model",
+     "Data from another process"))
+plt.title("Min p-value combiner")
 
 # %%
