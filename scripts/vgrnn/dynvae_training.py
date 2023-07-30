@@ -48,7 +48,7 @@ test_loader = DataLoader(test_dataset, batch_size=32)
 
 # %% Model
 
-dynvae_model = DynVAE(x_dim=dataset.x.size(-1), h_dim=32, z_dim=16, n_layers=5, eps=1e-10, bias=True)
+dynvae_model = DynVAE(x_dim=dataset.x.size(-1), h_dim=32, z_dim=16, n_gru_layers=5, eps=1e-10, bias=True)
 
 optimizer = torch.optim.Adam(dynvae_model.parameters(), lr=1e-2)
 

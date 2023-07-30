@@ -1,9 +1,10 @@
 """VGRNN imlementation following https://arxiv.org/abs/1908.09710
 Adapted for directed graphs
-Extended for multi-model prior"""
+Extended for Gaussian mixture prior"""
 import torch
-from torch.nn import Sequential, Linear, ReLU, Softplus, ModuleList
+from torch.nn import Sequential, Linear, ReLU, Softplus, ModuleList, Dropout
 from torch_geometric.nn.conv import GCNConv, GINConv
+from torch_geometric.nn import GIN
 from torch.autograd import Variable
 import torch.nn.functional as F
 import torch.distributions as dist
@@ -61,6 +62,40 @@ class Graph_GRU(torch.nn.Module):
         out = h_out
         return out, h_out
 
+class Encoder(torch.nn.Module):
+    def __init__(self, in_features, hidden_dim, latent_dim, n_gin_layers=10):
+        super().__init__()
+        # GIN defaults to ReLU activation
+        self.gin = GIN(in_channels=in_features, hidden_channels=hidden_dim,
+                       num_layers=n_gin_layers, dropout=0.2)
+        self.mean = torch.nn.Linear(hidden_dim, latent_dim)
+        self.std = torch.nn.Sequential(
+            torch.nn.Linear(hidden_dim, latent_dim),
+            torch.nn.Softplus()
+        )
+
+    def forward(self, x, edge_list):
+        hidden = self.gin(x, edge_list)
+        return self.mean(hidden), self.std(hidden)
+    
+class PriorEncoder(torch.nn.Module):
+    def __init__(self, in_features, hidden_dim, latent_dim, n_layers=1):
+        super().__init__()
+        # GIN defaults to ReLU activation
+        self.dense =Sequential(
+            Linear(in_features, hidden_dim), ReLU(),
+            *[Sequential(Linear(hidden_dim, hidden_dim), Dropout(), ReLU()) for _ in range(n_layers)]
+            )
+        self.mean = torch.nn.Linear(hidden_dim, latent_dim)
+        self.std = torch.nn.Sequential(
+            torch.nn.Linear(hidden_dim, latent_dim),
+            torch.nn.Softplus()
+        )
+
+    def forward(self, x):
+        hidden = self.dense(x)
+        return self.mean(hidden), self.std(hidden)
+
 class InnerProductDecoder(torch.nn.Module):
     def __init__(self, act=torch.sigmoid, dropout=0.):
         super(InnerProductDecoder, self).__init__()
@@ -76,7 +111,8 @@ class InnerProductDecoder(torch.nn.Module):
         return self.act(x)
 
 class DynVAE(torch.nn.Module):
-    def __init__(self, x_dim, h_dim, z_dim, n_layers, eps, bias=False, n_prior_modes=0, device=None):
+    def __init__(self, x_dim, h_dim, z_dim, eps, bias=False, n_prior_modes=0, device=None,
+                 n_gin_layers=10, n_dense_layers=1, n_gru_layers=10, ):
         super(DynVAE, self).__init__()
 
         if device is None:
@@ -86,30 +122,20 @@ class DynVAE(torch.nn.Module):
         self.eps = eps
         self.h_dim = h_dim
         self.z_dim = z_dim
-        self.n_layers = n_layers
+        self.n_gru_layers = n_gru_layers
         
         # Functions for GRU recurrence
         self.phi_x = Sequential(Linear(x_dim, h_dim, bias=bias), ReLU())
         self.phi_z = Sequential(Linear(z_dim + z_dim, h_dim, bias=bias), ReLU())
-        self.rnn = Graph_GRU(h_dim + h_dim, h_dim, n_layers, bias)
+        self.rnn = Graph_GRU(h_dim + h_dim, h_dim, n_gru_layers, bias)
 
         # Encoder: 2-layered GIN
-        self.enc_src = GINConv(Sequential(Linear(h_dim + h_dim, h_dim), ReLU()))
-        self.enc_src_mean = GCNConv(h_dim, z_dim)
-        self.enc_src_std = GINConv(Sequential(Linear(h_dim, z_dim), Softplus()))
-
-        self.enc_dst = GINConv(Sequential(Linear(h_dim + h_dim, h_dim), ReLU()))
-        self.enc_dst_mean = GCNConv(h_dim, z_dim)
-        self.enc_dst_std = GINConv(Sequential(Linear(h_dim, z_dim), Softplus()))
+        self.enc_src = Encoder(h_dim + h_dim, h_dim, z_dim, n_gin_layers=n_gin_layers)
+        self.enc_dst = Encoder(h_dim + h_dim, h_dim, z_dim, n_gin_layers=n_gin_layers)
 
         # Prior: 2-layered MLP
-        self.prior_src = Sequential(Linear(h_dim, h_dim), ReLU())
-        self.prior_src_mean = Sequential(Linear(h_dim, z_dim))
-        self.prior_src_std = Sequential(Linear(h_dim, z_dim), Softplus())
-
-        self.prior_dst = Sequential(Linear(h_dim, h_dim), ReLU())
-        self.prior_dst_mean = Sequential(Linear(h_dim, z_dim))
-        self.prior_dst_std = Sequential(Linear(h_dim, z_dim), Softplus())
+        self.prior_src = PriorEncoder(h_dim, h_dim, z_dim, n_layers=n_dense_layers)
+        self.prior_dst = PriorEncoder(h_dim, h_dim, z_dim, n_layers=n_dense_layers)
 
         # Prior Distribution
         self.simple_prior = n_prior_modes < 1
@@ -126,7 +152,7 @@ class DynVAE(torch.nn.Module):
         all_dec_t = []
         
         if hidden_in is None:
-            h = torch.zeros(self.n_layers, x.size(1), self.h_dim, requires_grad=True).to(x.device)
+            h = torch.zeros(self.n_gru_layers, x.size(1), self.h_dim, requires_grad=True).to(x.device)
         else:
             h = hidden_in.clone().detach().requires_grad_(True).to(x.device)
         
@@ -134,22 +160,12 @@ class DynVAE(torch.nn.Module):
             phi_x_t = self.phi_x(x[t])
 
             #encoder
-            enc_src_t = self.enc_src(torch.cat([phi_x_t, h[-1]], 1), edge_idx_list[t])
-            enc_src_mean_t = self.enc_src_mean(enc_src_t, edge_idx_list[t])
-            enc_src_std_t = self.enc_src_std(enc_src_t, edge_idx_list[t])
-
-            enc_dst_t = self.enc_dst(torch.cat([phi_x_t, h[-1]], 1), edge_idx_list[t])
-            enc_dst_mean_t = self.enc_dst_mean(enc_dst_t, edge_idx_list[t])
-            enc_dst_std_t = self.enc_dst_std(enc_dst_t, edge_idx_list[t])
+            enc_src_mean_t, enc_src_std_t = self.enc_src(torch.cat([phi_x_t, h[-1]], 1), edge_idx_list[t])
+            enc_dst_mean_t, enc_dst_std_t = self.enc_dst(torch.cat([phi_x_t, h[-1]], 1), edge_idx_list[t])
             
             #prior
-            prior_src_t = self.prior_src(h[-1])
-            prior_src_mean_t = self.prior_src_mean(prior_src_t)
-            prior_src_std_t = self.prior_src_std(prior_src_t)
-
-            prior_dst_t = self.prior_dst(h[-1])
-            prior_dst_mean_t = self.prior_dst_mean(prior_dst_t)
-            prior_dst_std_t = self.prior_dst_std(prior_dst_t)
+            prior_src_mean_t, prior_src_std_t = self.prior_src(h[-1])
+            prior_dst_mean_t, prior_dst_std_t = self.prior_dst(h[-1])
             
             #sampling and reparameterization
             z_src_t = self._reparameterized_sample(enc_src_mean_t, enc_src_std_t)
