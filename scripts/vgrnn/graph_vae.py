@@ -9,6 +9,7 @@ from torch_geometric.loader import DataLoader
 from torch_geometric.nn import GIN, global_mean_pool
 from torch_geometric.utils import to_dense_adj
 from gnn_data_generation.three_graph_families_dataset import ThreeGraphFamiliesDataset
+from gnn_data_generation.one_graph_family_dataset import OneGraphFamilyDataset
 
 from gnn.train_loops import vae_training_loop, plot_vae_training_results
 from gnn.early_stopping import EarlyStopping
@@ -18,6 +19,7 @@ from cuda.cuda_utils import select_device
 try:
     parser = argparse.ArgumentParser(description="Graph VAE example",
                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("-gdat", "--giant_dataset", action="store_false", help="Use giant dataset?")
     parser.add_argument("-feat", "--use_node_features", action="store_false", help="Use node features in my dataset")
 
     parser.add_argument("-e", "--epochs", type=int, default=10, help="Number of epochs")
@@ -32,6 +34,7 @@ try:
     args = parser.parse_args()
     config = vars(args)
 
+    USE_GIANT_DATASET = config["giant_dataset"]
     USE_NODE_FEATURES = config["use_node_features"]
 
     NUM_EPOCHS = config["epochs"]
@@ -45,6 +48,8 @@ try:
     print(config)
 except:
     print("Setting default values, argparser failed!")
+
+    USE_GIANT_DATASET = False
     USE_NODE_FEATURES = True
 
     NUM_EPOCHS = 20
@@ -59,10 +64,13 @@ except:
 SIMPLE_PRIOR = N_PRIOR_MODES < 1
 
 # %% Dataset
-dataset = ThreeGraphFamiliesDataset(use_features=USE_NODE_FEATURES)
-# Use only one class
-dataset = dataset[dataset.y == 0]
-num_classes = len(dataset.y.unique())
+if USE_GIANT_DATASET:
+    dataset = OneGraphFamilyDataset(use_features=USE_NODE_FEATURES)
+else:
+    dataset = ThreeGraphFamiliesDataset(use_features=USE_NODE_FEATURES)
+    # Use only one class
+    dataset = dataset[dataset.y == 0]
+
 train_idx, test_idx = torch.utils.data.random_split(
     dataset, (0.7, 0.3), torch.Generator().manual_seed(0))
 
