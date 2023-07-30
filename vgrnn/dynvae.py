@@ -138,7 +138,7 @@ class DynVAE(torch.nn.Module):
         self.prior_dst = PriorEncoder(h_dim, h_dim, z_dim, n_layers=n_dense_layers)
 
         # Prior Distribution
-        self.simple_prior = n_prior_modes < 1
+        self.simple_prior = n_prior_modes < 2
         if self.simple_prior:
             self.prior = dist.Normal(loc=torch.zeros(z_dim).to(device), scale=1.)
         else:
@@ -199,8 +199,8 @@ class DynVAE(torch.nn.Module):
                 kld_loss += self._kld_gauss(enc_src_mean_t_sl, enc_src_std_t_sl, prior_src_mean_t_sl, prior_src_std_t_sl) + \
                     self._kld_gauss(enc_dst_mean_t_sl, enc_dst_std_t_sl, prior_dst_mean_t_sl, prior_dst_std_t_sl)
             else:
-                kld_loss += self._kld_gauss_zu(enc_src_mean_t_sl, enc_src_std_t_sl, prior_src_mean_t_sl, prior_src_std_t_sl) + \
-                    self._kld_gauss_zu(enc_dst_mean_t_sl, enc_dst_std_t_sl, prior_dst_mean_t_sl, prior_dst_std_t_sl)
+                kld_loss += self._kld_gauss_zu(enc_src_mean_t_sl, enc_src_std_t_sl) + \
+                    self._kld_gauss_zu(enc_dst_mean_t_sl, enc_dst_std_t_sl)
             nll_loss += self._nll_bernoulli(dec_t_sl, adj_orig_dense_list[t])
 
             all_dec_t.append(dec_t_sl)
