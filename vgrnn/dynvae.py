@@ -6,6 +6,25 @@ from torch.nn import Sequential, Linear, ReLU, Softplus, ModuleList
 from torch_geometric.nn.conv import GCNConv, GINConv
 from torch.autograd import Variable
 import torch.nn.functional as F
+import torch.distributions as dist
+
+def get_nmode_prior(device, num_modes, latent_dim):
+    """
+    This function should create an instance of a MixtureSameFamily distribution
+    according to the above specification.
+    The function takes the num_modes and latent_dim as arguments, which should
+    be used to define the distribution.
+    Your function should then return the distribution instance.
+    """
+    probs = torch.ones(num_modes, device=device) / num_modes
+    categorical = dist.Categorical(probs=probs)
+    loc = torch.randn((num_modes, latent_dim), device=device)
+    scale = torch.ones((num_modes, latent_dim), device=device)
+    scale = torch.nn.functional.softplus(scale)
+    prior = dist.MixtureSameFamily(
+        mixture_distribution=categorical,
+        component_distribution=dist.Independent(dist.Normal(loc=loc, scale=scale), 1))
+    return prior
 
 class Graph_GRU(torch.nn.Module):
     def __init__(self, input_size, hidden_size, n_layer, bias=True):
@@ -57,8 +76,11 @@ class InnerProductDecoder(torch.nn.Module):
         return self.act(x)
 
 class DynVAE(torch.nn.Module):
-    def __init__(self, x_dim, h_dim, z_dim, n_layers, eps, bias=False):
+    def __init__(self, x_dim, h_dim, z_dim, n_layers, eps, bias=False, n_prior_modes=0, device=None):
         super(DynVAE, self).__init__()
+
+        if device is None:
+            device = torch.device("cpu")
         
         self.x_dim = x_dim
         self.eps = eps
@@ -88,6 +110,13 @@ class DynVAE(torch.nn.Module):
         self.prior_dst = Sequential(Linear(h_dim, h_dim), ReLU())
         self.prior_dst_mean = Sequential(Linear(h_dim, z_dim))
         self.prior_dst_std = Sequential(Linear(h_dim, z_dim), Softplus())
+
+        # Prior Distribution
+        self.simple_prior = n_prior_modes < 1
+        if self.simple_prior:
+            self.prior = dist.Normal(loc=torch.zeros(z_dim).to(device), scale=1.)
+        else:
+            self.prior = get_nmode_prior(device=device, num_modes=n_prior_modes, latent_dim=z_dim)
     
     def forward(self, x, edge_idx_list, adj_orig_dense_list, hidden_in=None):
         assert len(adj_orig_dense_list) == len(edge_idx_list)
@@ -150,8 +179,12 @@ class DynVAE(torch.nn.Module):
             dec_t_sl = dec_t[0:nnodes, 0:nnodes]
             
             #computing losses
-            kld_loss += self._kld_gauss(enc_src_mean_t_sl, enc_src_std_t_sl, prior_src_mean_t_sl, prior_src_std_t_sl) + \
-                self._kld_gauss(enc_dst_mean_t_sl, enc_dst_std_t_sl, prior_dst_mean_t_sl, prior_dst_std_t_sl)
+            if self.simple_prior:
+                kld_loss += self._kld_gauss(enc_src_mean_t_sl, enc_src_std_t_sl, prior_src_mean_t_sl, prior_src_std_t_sl) + \
+                    self._kld_gauss(enc_dst_mean_t_sl, enc_dst_std_t_sl, prior_dst_mean_t_sl, prior_dst_std_t_sl)
+            else:
+                kld_loss += self._kld_gauss_zu(enc_src_mean_t_sl, enc_src_std_t_sl, prior_src_mean_t_sl, prior_src_std_t_sl) + \
+                    self._kld_gauss_zu(enc_dst_mean_t_sl, enc_dst_std_t_sl, prior_dst_mean_t_sl, prior_dst_std_t_sl)
             nll_loss += self._nll_bernoulli(dec_t_sl, adj_orig_dense_list[t])
 
             all_dec_t.append(dec_t_sl)
@@ -170,12 +203,13 @@ class DynVAE(torch.nn.Module):
         pass
     
     def _reparameterized_sample(self, mean, std):
-        eps1 = torch.FloatTensor(std.size()).normal_()
-        eps1 = Variable(eps1).to(mean.device)
-        return eps1.mul(std).add_(mean)
+        epsilon = self.prior.sample((mean.size(0),))
+        z = mean + std * epsilon
+        return z
     
     def _kld_gauss(self, mean_1, std_1, mean_2, std_2):
         num_nodes = mean_1.size()[0]
+        # See: https://stats.stackexchange.com/questions/7440/kl-divergence-between-two-univariate-gaussians
         kld_element =  (2 * torch.log(std_2 + self.eps) - 2 * torch.log(std_1 + self.eps) +
                         (torch.pow(std_1 + self.eps ,2) + torch.pow(mean_1 - mean_2, 2)) / 
                         torch.pow(std_2 + self.eps ,2) - 1)
@@ -183,6 +217,7 @@ class DynVAE(torch.nn.Module):
     
     def _kld_gauss_zu(self, mean_in, std_in):
         num_nodes = mean_in.size()[0]
+        # https://arxiv.org/abs/1312.6114
         std_log = torch.log(std_in + self.eps)
         kld_element =  torch.mean(torch.sum(1 + 2 * std_log - mean_in.pow(2) -
                                             torch.pow(torch.exp(std_log), 2), 1))
