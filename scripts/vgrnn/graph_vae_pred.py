@@ -1,6 +1,7 @@
 """Evaluate a graph given the model"""
 # %% Imports
 import numpy as np
+from sklearn.metrics import roc_auc_score
 import matplotlib.pyplot as plt
 import torch
 from torch_geometric.utils import to_dense_adj
@@ -38,6 +39,12 @@ def score_given_model(model, datum, plots=True):
     probs_2 = bernoulli_dist.log_prob(y_true).exp()
     # assert equality
     assert torch.allclose(probs, probs_2)
+
+    # AUC score
+    auc_score = roc_auc_score(
+        y_true.numpy().flatten(),
+        mega_sample.numpy().flatten())
+    print(f"AUC: {auc_score}")
 
     # I keep the probs only in the region that were one for either matrix
     locs = (mega_sample > 0.5).type(torch.int).logical_or(y_true)
