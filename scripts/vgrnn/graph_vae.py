@@ -169,7 +169,7 @@ class VAE(torch.nn.Module):
         self.decoder = InnerProductDecoder2()
 
         # self.loss
-        self._bceloss = torch.nn.BCELoss(reduction="sum")
+        self._bceloss = torch.nn.BCELoss(reduction="mean")
 
     def forward(self, data):
         mu_ld, std_ld = self.encoder_ld(data)
@@ -214,7 +214,7 @@ class VAE(torch.nn.Module):
     def _gaussian_kl(self, mean, scale):
         q = dist.Normal(mean, scale)
         # Sum across all
-        return dist.kl_divergence(q, self.prior).sum()
+        return dist.kl_divergence(q, self.prior).sum(dim=1).mean()
     
     def _gaussian_mixture_kl(self, loc, scale):
         # see Appendix B from VAE paper:
@@ -222,8 +222,12 @@ class VAE(torch.nn.Module):
         # https://arxiv.org/abs/1312.6114
         # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
         # Note: other people experience overflow here
-        # See: https://discuss.pytorch.org/t/kld-loss-goes-nan-during-vae-training/42305/4 
-        return -0.5 * (1 + torch.log(scale) - loc ** 2 - scale).sum()
+        # See: https://discuss.pytorch.org/t/kld-loss-goes-nan-during-vae-training/42305/4
+        eps = 1e-8
+        std_log = torch.log(scale + eps)
+        kld_element =  torch.mean(torch.sum(1 + 2 * std_log - loc.pow(2) -
+                                            torch.pow(torch.exp(std_log), 2), 1))
+        return -0.5 * kld_element
 
 # vae = VAE(prior_modes=N_PRIOR_MODES, latent_dim=LATENT_DIM, hidden_dim=HIDDEN_DIM, device=torch.device("cpu"))
 # vae_call = vae(dataset[0])
