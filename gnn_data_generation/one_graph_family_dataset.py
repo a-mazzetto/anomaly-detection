@@ -18,9 +18,10 @@ def create_dataset(save_path, aggregation_interval=15 * 60):
     print("Creating data...")
     first_group_data = []
 
-    for _ in range(10):
+    for i in range(100):
+        print(f"Generating {i}th generation")
         dataset, _ = generate_dataset(
-            max_time=300 * constants.MAX_TIME,
+            max_time=18 * constants.MAX_TIME,
             period=2 * constants.PERIOD,
             n_nodes=constants.NNODES,
             destination_intensity=7.0,
@@ -93,4 +94,4 @@ class OneGraphFamilyDataset(InMemoryDataset):
 
 if __name__ == "__main__":
 
-    dataset = OneGraphFamilyDataset(use_features=False)
+    dataset = OneGraphFamilyDataset(use_features=True)
