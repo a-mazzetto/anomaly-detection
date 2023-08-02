@@ -21,6 +21,8 @@ try:
                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-gdat", "--giant_dataset", action="store_false", help="Use giant dataset?")
     parser.add_argument("-feat", "--use_node_features", action="store_false", help="Use node features in my dataset")
+    parser.add_argument("-nbatch", "--batch_size", type=int, default=32, help="Batch size")
+    parser.add_argument("-optstep", "--optimizer_step", type=float, default=1e-5, help="Optimizer step")
 
     parser.add_argument("-e", "--epochs", type=int, default=10, help="Number of epochs")
     parser.add_argument("-p", "--patience", type=int, default=10, help="Patience")
@@ -36,6 +38,8 @@ try:
 
     USE_GIANT_DATASET = config["giant_dataset"]
     USE_NODE_FEATURES = config["use_node_features"]
+    N_BATCH = config["batch_size"]
+    OPT_STEP = config["optimizer_step"]
 
     NUM_EPOCHS = config["epochs"]
     PATIENCE = config["patience"]
@@ -51,6 +55,8 @@ except:
 
     USE_GIANT_DATASET = False
     USE_NODE_FEATURES = True
+    N_BATCH = 32
+    OPT_STEP = 1e-3
 
     NUM_EPOCHS = 20
     PATIENCE = 20
@@ -77,8 +83,8 @@ train_idx, test_idx = torch.utils.data.random_split(
 train_dataset = [dataset[_idx] for _idx in train_idx.indices]
 test_dataset = [dataset[_idx] for _idx in test_idx.indices]
 
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=32)
+train_loader = DataLoader(train_dataset, batch_size=N_BATCH, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=N_BATCH)
 
 # %% Prior distribution
 latent_dim = 8
@@ -237,7 +243,7 @@ if __name__ == "__main__":
     device = select_device()
 
     model = VAE(device=device, prior_modes=N_PRIOR_MODES, latent_dim=LATENT_DIM, hidden_dim=HIDDEN_DIM, n_gin_layers=N_GIN_LAYERS)
-    optimizer = torch.optim.Adam(model.parameters(), 1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), OPT_STEP)
 
     history = vae_training_loop(model=model, optimizer=optimizer, num_epochs=NUM_EPOCHS,
         train_dl=train_loader, val_dl=test_loader, early_stopping=EarlyStopping(patience=PATIENCE),
