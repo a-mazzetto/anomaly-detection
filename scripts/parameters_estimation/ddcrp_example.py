@@ -12,7 +12,8 @@ from parameter_estimation.parameter_estimation import \
 
 N_NODES = 100
 N_ITERS = 10000
-N = 10000
+# Keep small N to avoid overflaw
+N = 1000
 TRUE_ALPHA = 5.0
 
 true_kn = dirichlet_true_kn(TRUE_ALPHA, N, N_NODES)
