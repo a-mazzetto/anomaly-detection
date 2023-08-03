@@ -11,7 +11,7 @@ from parameter_estimation.parameter_estimation import \
 
 N_NODES = 100
 N_ITERS = 1000
-N = 1000
+N = 10000
 TRUE_ALPHA = 5.0
 TRUE_D = 0.25
 
@@ -60,3 +60,5 @@ ax[1, 1].vlines(x=true_h1n, ymin=0, ymax=N_ITERS/4, linestyle="--", color="red")
 ax[1, 1].set_xlabel(r"$H_{1n}$")
 
 # %%
+
+fig.savefig("./plots/py_par_est.pdf")
