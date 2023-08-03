@@ -11,7 +11,7 @@ from parameter_estimation.parameter_estimation import \
 
 N_NODES = 100
 N_ITERS = 10000
-N = 1000
+N = 10000
 TRUE_ALPHA = 5.0
 TRUE_D = 0.25
 
