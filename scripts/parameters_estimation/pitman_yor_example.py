@@ -10,8 +10,8 @@ from parameter_estimation.parameter_estimation import \
 # %% Initial parameters
 
 N_NODES = 100
-N_ITERS = 1000
-N = 10000
+N_ITERS = 10000
+N = 1000
 TRUE_ALPHA = 5.0
 TRUE_D = 0.25
 
@@ -40,7 +40,6 @@ for _ in range(N_ITERS):
 
 # %%
 fig, ax = plt.subplots(2, 2)
-fig.tight_layout()
 ax[0, 0].hist(meas_alpha_list, alpha=0.5)
 ax[0, 0].vlines(x=TRUE_ALPHA, ymin=0, ymax=N_ITERS/4, linestyle="--", color="red")
 ax[0, 0].set_xlabel(r"$\alpha$")
@@ -58,6 +57,7 @@ ax[1, 0].set_ylabel("Density")
 ax[1, 1].hist(meas_h1n_list, alpha=0.5)
 ax[1, 1].vlines(x=true_h1n, ymin=0, ymax=N_ITERS/4, linestyle="--", color="red")
 ax[1, 1].set_xlabel(r"$H_{1n}$")
+fig.tight_layout()
 
 # %%
 
