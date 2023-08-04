@@ -23,10 +23,11 @@ def pitman_yor_est_pars(meas_kn, meas_h1n, n, n_nodes):
     kn_hat = np.log(1 - meas_kn / n_nodes) / np.log((n_nodes - 1) / n_nodes)
     h1n_hat = meas_h1n * (n_nodes / (n_nodes - 1))**(kn_hat - 1)
     # Estimate parameters under approximation `Method 2` proposed in the paper
-    d_hat = h1n_hat / kn_hat
     def _equation(x):
-        return d_hat * gamma(d_hat + x) * kn_hat - gamma(1 + x) * n**d_hat
-    alpha_hat = fsolve(_equation, kn_hat / np.log(n))[0]
+        _a, _d = x[0], x[1]
+        return [h1n_hat * gamma(_d + _a) - gamma(1 + _a) * n**_d,
+                h1n_hat - _a - kn_hat * _d]
+    alpha_hat, d_hat = fsolve(_equation, [kn_hat / np.log(n), h1n_hat / kn_hat])
     return alpha_hat, d_hat
 
 def dirichlet_true_kn(true_alpha, n, n_nodes):
@@ -46,7 +47,9 @@ def dirichlet_est_pars(meas_kn, n, n_nodes):
     # Adjustment under the Birthday Problem
     kn_hat = np.log(1 - meas_kn / n_nodes) / np.log((n_nodes - 1) / n_nodes)
     # Estimate parameters under approximation `Method 2` proposed in the paper
-    alpha_hat = kn_hat / np.log(n)
+    def _equation(_a):
+        return _a * np.log(1 + n / _a) - kn_hat
+    alpha_hat = fsolve(_equation, kn_hat / np.log(n))[0]
     return alpha_hat
 
 class ForgettingFactorsMean():
