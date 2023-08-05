@@ -122,12 +122,14 @@ class PoissonProcessRateEstimation():
     def __init__(self, forgetting_factor, num_0=0, den_0=0, t_start=0):
         """Initialize forgetting factors mean estimate, and time zero"""
         self.mean = ForgettingFactorsMean(lam=forgetting_factor, num_0=num_0, den_0=den_0)
+        self.num_0 = num_0
+        self.den_0 = den_0
         self.t_start = t_start
         self.reset()
 
     def reset(self):
         """Reset"""
-        self.mean.reset()
+        self.mean.reset(self.num_0, self.den_0)
         self.t_old = self.t_start
 
     def update(self, t):
