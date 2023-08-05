@@ -21,7 +21,6 @@ def preprocessing(user_args=None):
     input_file = settings["input"]["filepath"]
     output1_file = settings["phase0"]["y_params_file"]
     output2_file = settings["phase0"]["x_y_params_file"]
-    output3_file = settings["phase0"]["pois_params_file"]
     n_nodes = settings["info"]["n_nodes"]
     result_folder = settings["output"]["root"]
     process_type = settings["info"]["type"]
@@ -129,13 +128,6 @@ def preprocessing(user_args=None):
             for line in zip(dest_list, dest_alpha.astype(str)):
                 file.write("\t".join(line) + "\n")
             file.write("\t".join(["average", np.nanmedian(dest_alpha).astype(str)]) + "\n")
-
-    # Save Poisson learning
-    if process_type == "POISSON_PY":
-        with open(output3_file, "w", encoding="utf-8") as file:
-            # Save numerator, denominator and last time of learned sequence
-            file.write("\t".join([str(i) for i in \
-                [poisson_rate.mean.num, poisson_rate.mean.den, poisson_rate.t_old]]) + "\n")
 
     # Sort file
     completed = subprocess.run(["powershell", "-Command",

@@ -19,11 +19,11 @@ def destination_process(user_args=None):
     input_file = settings["input"]["filepath"]
     output_file = settings["phase1"]["dest_file"]
     params_file = settings["phase0"]["y_params_file"]
-    poisson_params_file = settings["phase0"]["pois_params_file"]
     process_type = settings["info"]["type"]
     twindow = settings["info"]["stream_time_window"]
     forgetting_factor = settings["info"]["forgetting_factor"]
     n_nodes = settings["info"]["n_nodes"]
+    training_tstart = settings["phase0"]["tstart"]
     tstart = settings["phase1"]["tstart"]
     tend = settings["phase1"]["tend"]
 
@@ -36,18 +36,6 @@ def destination_process(user_args=None):
             alpha = float(params[0])
             d = float(params[1]) if len(params) > 1 else None
             count += 1
-    
-    if process_type == "POISSON_PY":
-        with open(poisson_params_file, "r", encoding="utf-8") as file:
-            count = 0
-            for line in file:
-                if count > 1:
-                    raise AssertionError("This file should have one line")
-                params = line.strip().split("\t")
-                pois_est_num = float(params[0])
-                pois_est_den = float(params[1])
-                pois_est_t_start = float(params[2])
-                count += 1
 
     if process_type == "DP":
         py_pvalue = PitmanYorPValue(alpha=alpha, d=0, n_nodes=n_nodes)
@@ -59,8 +47,7 @@ def destination_process(user_args=None):
         py_pvalue = StreamingPitmanYorPValue(twindow=twindow, alpha=alpha, d=d, n_nodes=n_nodes)
     elif process_type == "POISSON_PY":
         poisson_rate = PoissonProcessRateEstimation(
-            forgetting_factor=forgetting_factor, num_0=pois_est_num,
-            den_0=pois_est_den, t_start=pois_est_t_start)
+            forgetting_factor=forgetting_factor, t_start=min(training_tstart, tstart))
         py_pvalue_s = PitmanYorMarkedPPPValue(alpha=alpha, d=d, n_nodes=n_nodes)
     else:
         raise ValueError("Unknown process type")
@@ -70,7 +57,9 @@ def destination_process(user_args=None):
             for line in file:
                 time, source, dest, anomaly = line.strip().split("\t")
                 time = float(time)
-                if time > tstart:  
+                # Calculations are necessary also in the training phase, and will be disregarded in the next step,
+                # after calculating source p-values
+                if time > min(training_tstart, tstart):  
                     if process_type in ("DP", "PY"):
                         pvalue = py_pvalue.pvalue_and_update(dest)
                         poisson_pvalue = None

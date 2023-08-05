@@ -21,6 +21,7 @@ def source_conditional_process(user_args=None):
     output_file = settings["phase2"]["dest_file"]
     params_file = settings["phase0"]["x_y_params_file"]
     n_nodes = settings["info"]["n_nodes"]
+    tstart = settings["phase1"]["tstart"]
 
     process_type = settings["info"]["type"]
     twindow = settings["info"]["stream_time_window"]
@@ -72,12 +73,14 @@ def source_conditional_process(user_args=None):
                     x_given_y_pvalue = py_pvalue.pvalue_and_update(source)
                 else:
                     x_given_y_pvalue = py_pvalue.pvalue_and_update(source, float(time))
-                # Combine p-values
-                if t_pvalue != "None":
-                    score = fisher_pvalues_combiner(np.array([float(y_pvalue), x_given_y_pvalue, float(t_pvalue)]))
-                else:
-                    score = fisher_pvalues_combiner(np.array([float(y_pvalue), x_given_y_pvalue]))
-                out_file.write("\t".join(["_".join((source, dest)), time, anomaly, y_pvalue, str(x_given_y_pvalue), str(score)]) + "\n")
+                # Output only after training period
+                if float(time) > tstart:
+                    # Combine p-values
+                    if t_pvalue != "None":
+                        score = fisher_pvalues_combiner(np.array([float(y_pvalue), x_given_y_pvalue, float(t_pvalue)]))
+                    else:
+                        score = fisher_pvalues_combiner(np.array([float(y_pvalue), x_given_y_pvalue]))
+                    out_file.write("\t".join(["_".join((source, dest)), time, anomaly, y_pvalue, str(x_given_y_pvalue), str(score)]) + "\n")
 
     # Sort file
     completed = subprocess.run(["powershell", "-Command",

@@ -34,7 +34,6 @@ def create_settings(
     settings["phase0"]["threshold"] = param_est_threshold
     settings["phase0"]["y_params_file"] = os.path.join(settings["output"]["root"], "phase0_y_params.txt")
     settings["phase0"]["x_y_params_file"] = os.path.join(settings["output"]["root"], "phase0_x_y_params.txt")
-    settings["phase0"]["pois_params_file"] = os.path.join(settings["output"]["root"], "phase0_pois_params.txt")
     settings["phase1"] = {}
     settings["phase1"]["tstart"] = test_interval[0]
     settings["phase1"]["tend"] = test_interval[1]
