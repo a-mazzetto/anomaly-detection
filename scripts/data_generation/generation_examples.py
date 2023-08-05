@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from processes.poisson import inhomogeneous_poisson_process_sinusoidal
 from processes.pitman_yor import generate_pitman_yor
+from processes.dirichlet import generate_exp_ddcrp
 
 NNODES  = 100
 computer_names = [f'C{i}' for i in range(NNODES)]
@@ -36,8 +37,8 @@ plt.ylabel('Number of exvents per hour')
 DESTINATION_DISCOUNT = 0.25
 DESTINATION_INTENSITY = 7.0
 destinations = generate_pitman_yor(
-    discount=0.25,
-    intensity=7.0,
+    discount=DESTINATION_DISCOUNT,
+    intensity=DESTINATION_INTENSITY,
     length=len(times),
     labels=computer_names,
     seed=SEED
@@ -47,6 +48,41 @@ plt.hist(destinations)
 plt.xticks(rotation = 75)
 plt.title(('Pitman-Yor samples distribution with intensity'
            f'{DESTINATION_INTENSITY} discount {DESTINATION_DISCOUNT}'))
+plt.show()
+
+unique_dest, sort_idx = np.unique(destinations, return_index=True)
+unique_dest = unique_dest[np.argsort(sort_idx)]
+dest_rename = dict(zip(unique_dest, range(len(unique_dest))))
+destinations_tokens = [dest_rename[_d] for _d in destinations]
+plt.scatter(list(range(len(destinations_tokens))), destinations_tokens, marker=".")
+plt.xlabel("Customer number")
+plt.ylabel("Table assignment")
+plt.title(('Pitman-Yor samples distribution with intensity'
+           f'{DESTINATION_INTENSITY} discount {DESTINATION_DISCOUNT}'))
+plt.savefig(f'plots/I_{DESTINATION_INTENSITY}_D_{DESTINATION_DISCOUNT}.pdf')
+
+# %% Generate DDCRP destinations
+
+DESTINATION_INTENSITY = 7.0
+DECAY = 1 * 60 * 60
+destinations = generate_exp_ddcrp(
+    intensity=DESTINATION_INTENSITY,
+    decay=DECAY,
+    times=times,
+    labels=computer_names,
+    seed=SEED
+)
+
+unique_dest, sort_idx = np.unique(destinations, return_index=True)
+unique_dest = unique_dest[np.argsort(sort_idx)]
+dest_rename = dict(zip(unique_dest, range(len(unique_dest))))
+destinations_tokens = [dest_rename[_d] for _d in destinations]
+plt.scatter(list(range(len(destinations_tokens))), destinations_tokens, marker=".")
+plt.xlabel("Customer number")
+plt.ylabel("Table assignment")
+plt.title(('DDCRP samples distribution with intensity'
+           f'{DESTINATION_INTENSITY} decay {DECAY}'))
+plt.savefig(f'plots/I_{DESTINATION_INTENSITY}_E_{DECAY}.pdf')
 
 # %% Generate sources conditional upon destination
 link_dict = {}
