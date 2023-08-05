@@ -28,7 +28,7 @@ for _ in range(N_ITERS):
     )
     sequence = generate_exp_ddcrp(
         intensity=TRUE_ALPHA,
-        decay=1.0,
+        decay=60.0,
         times=times,
         labels=N_NODES
     )
