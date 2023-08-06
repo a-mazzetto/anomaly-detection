@@ -34,6 +34,8 @@ try:
     parser.add_argument("-ngl", "--n_gin_layers", type=int, default=10, help="Number GIN layers")
     parser.add_argument("-modes", "--n_modes", type=int, default=0, help="Mixture of Gaussians?")
 
+    parser.add_argument("-posw", "--pos_weight", type=float, default=1.0, help="Positive class weight")
+
     args = parser.parse_args()
     config = vars(args)
 
@@ -51,6 +53,9 @@ try:
     HIDDEN_DIM = config["hidden_dim"]
     N_GIN_LAYERS = config["n_gin_layers"]
     N_PRIOR_MODES = config["n_modes"]
+
+    POS_WEIGHT = config["pos_weight"]
+
     print(config)
 except:
     print("Setting default values, argparser failed!")
@@ -69,6 +74,8 @@ except:
     HIDDEN_DIM = 54
     N_GIN_LAYERS = 10
     N_PRIOR_MODES = 3
+
+    POS_WEIGHT = 1.0
 
 SIMPLE_PRIOR = N_PRIOR_MODES < 1
 
@@ -135,24 +142,27 @@ loc, scale = encoder(dataset[0])
 # %% Decoder
 
 class InnerProductDecoder(torch.nn.Module):
-    def __init__(self, act=torch.nn.Sigmoid):
+    def __init__(self, logits):
         super().__init__()
-        self.act = act
+        self.logits = logits
         self.dropout = torch.nn.Dropout(p=0.2)
     
     def forward(self, inp):
         inp = self.dropout(inp)
         x = torch.transpose(inp, dim0=-2, dim1=-1)
         x = torch.matmul(inp, x)
-        return self.act()(x)
+        if self.logits:
+            return x
+        else:
+            return torch.sigmoid(x)
 
 # decoder = InnerProductDecoder()
 # decoder(prior.sample(torch.Size([2])))
 
 class InnerProductDecoder2(torch.nn.Module):
-    def __init__(self, act=torch.nn.Sigmoid):
+    def __init__(self, logits):
         super().__init__()
-        self.act = act
+        self.logits = logits
         self.dropout = torch.nn.Dropout(p=0.2)
     
     def forward(self, ld_in, ud_in):
@@ -160,11 +170,14 @@ class InnerProductDecoder2(torch.nn.Module):
         ud_in = self.dropout(ud_in)
         ud_in_t = torch.transpose(ud_in, dim0=-2, dim1=-1)
         x = torch.matmul(ld_in, ud_in_t)
-        return self.act()(x)
+        if self.logits:
+            return x
+        else:
+            return torch.sigmoid(x)
 
 # %% VAE
 class VAE(torch.nn.Module):
-    def __init__(self, device, latent_dim=8, hidden_dim=16, n_gin_layers=10, prior_modes=0):
+    def __init__(self, device, latent_dim=8, hidden_dim=16, n_gin_layers=10, prior_modes=0, pos_weight=1.0):
         super().__init__()
 
         # prior
@@ -175,10 +188,11 @@ class VAE(torch.nn.Module):
         # encoder, decoder
         self.encoder_ld = Encoder(latent_dim=latent_dim, hidden_dim=hidden_dim, n_gin_layers=n_gin_layers)
         self.encoder_ud = Encoder(latent_dim=latent_dim, hidden_dim=hidden_dim, n_gin_layers=n_gin_layers)
-        self.decoder = InnerProductDecoder2()
+        # Work with logits
+        self.decoder = InnerProductDecoder2(logits=True)
 
         # self.loss
-        self._bceloss = torch.nn.BCELoss(reduction="sum")
+        self._bceloss = torch.nn.BCEWithLogitsLoss(pos_weight=torch.tensor(pos_weight), reduction="sum")
 
     def forward(self, data):
         mu_ld, std_ld = self.encoder_ld(data)
@@ -210,7 +224,7 @@ class VAE(torch.nn.Module):
             kl_loss = self._gaussian_kl(mu_ld, std_ld) + self._gaussian_kl(mu_ud, std_ud)
         else:
             kl_loss = self._gaussian_mixture_kl(mu_ld, std_ld) + self._gaussian_mixture_kl(mu_ud, std_ud)
-        return nll_loss, kl_loss, adj_pred, dense_adj
+        return nll_loss, kl_loss, torch.sigmoid(adj_pred), dense_adj
     
     def sampler(self, mean, std):
         epsilon = self.prior.sample((mean.size(0),))
@@ -245,7 +259,8 @@ class VAE(torch.nn.Module):
 if __name__ == "__main__":
     device = select_device()
 
-    model = VAE(device=device, prior_modes=N_PRIOR_MODES, latent_dim=LATENT_DIM, hidden_dim=HIDDEN_DIM, n_gin_layers=N_GIN_LAYERS)
+    model = VAE(device=device, prior_modes=N_PRIOR_MODES, latent_dim=LATENT_DIM, hidden_dim=HIDDEN_DIM,
+                n_gin_layers=N_GIN_LAYERS, pos_weight=POS_WEIGHT)
     optimizer = torch.optim.Adam(model.parameters(), lr=OPT_STEP, weight_decay=OPT_DECAY)
 
     history = vae_training_loop(model=model, optimizer=optimizer, num_epochs=NUM_EPOCHS,
