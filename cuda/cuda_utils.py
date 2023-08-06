@@ -10,6 +10,7 @@ def select_device():
             if current_gpu_memory < selected_gpu_memory:
                 selected_gpu_memory = current_gpu_memory
                 selected_gpu = n_gpu
+        print(f"Selecting GPU number {selected_gpu}")
         return torch.device("cuda", selected_gpu)
     else:
         return torch.device("cpu")
