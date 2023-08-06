@@ -64,7 +64,7 @@ lm_dataset = generate_lateral_movement(
     edge_list=edge_list,
     time_interval=movement_period,
     rate=10.0,
-    typology=LateralMovementType(rw_steps=2, rw_num=20, rw_reset=False),
+    typology=LateralMovementType(rw_steps=10, rw_num=2, rw_reset=False),
     target_type="low-traffic",
     gen=SEED)
 
