@@ -257,7 +257,7 @@ if __name__ == "__main__":
     device = select_device()
 
     model = VAE(device=device, prior_modes=N_PRIOR_MODES, latent_dim=LATENT_DIM, hidden_dim=HIDDEN_DIM,
-                n_gin_layers=N_GIN_LAYERS, pos_weight=POS_WEIGHT)
+                n_gin_layers=N_GIN_LAYERS)
     optimizer = torch.optim.Adam(model.parameters(), lr=OPT_STEP, weight_decay=OPT_DECAY)
 
     history = vae_training_loop(model=model, optimizer=optimizer, num_epochs=NUM_EPOCHS,
