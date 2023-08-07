@@ -28,7 +28,7 @@ def score_given_model(model, datum, plots=True):
     mega_sample = model.decoder(
         torch.stack([model.sampler(*encoded_ld) for _ in range(1000)]),
         torch.stack([model.sampler(*encoded_ud) for _ in range(1000)]))
-    mega_sample = mega_sample.detach().mean(dim=[0])
+    mega_sample = mega_sample.detach().mean(dim=[0]).sigmoid()
 
     # Probabilities of y_true
     y_true = to_dense_adj(datum.edge_index)[0]
