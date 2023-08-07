@@ -34,8 +34,6 @@ try:
     parser.add_argument("-ngl", "--n_gin_layers", type=int, default=10, help="Number GIN layers")
     parser.add_argument("-modes", "--n_modes", type=int, default=0, help="Mixture of Gaussians?")
 
-    parser.add_argument("-posw", "--pos_weight", type=float, default=1.0, help="Positive class weight")
-
     args = parser.parse_args()
     config = vars(args)
 
@@ -53,8 +51,6 @@ try:
     HIDDEN_DIM = config["hidden_dim"]
     N_GIN_LAYERS = config["n_gin_layers"]
     N_PRIOR_MODES = config["n_modes"]
-
-    POS_WEIGHT = config["pos_weight"]
 
     print(config)
 except:
@@ -74,8 +70,6 @@ except:
     HIDDEN_DIM = 54
     N_GIN_LAYERS = 10
     N_PRIOR_MODES = 3
-
-    POS_WEIGHT = 1.0
 
 SIMPLE_PRIOR = N_PRIOR_MODES < 1
 
@@ -177,7 +171,7 @@ class InnerProductDecoder2(torch.nn.Module):
 
 # %% VAE
 class VAE(torch.nn.Module):
-    def __init__(self, device, latent_dim=8, hidden_dim=16, n_gin_layers=10, prior_modes=0, pos_weight=1.0):
+    def __init__(self, device, latent_dim=8, hidden_dim=16, n_gin_layers=10, prior_modes=0):
         super().__init__()
 
         # prior
@@ -190,9 +184,6 @@ class VAE(torch.nn.Module):
         self.encoder_ud = Encoder(latent_dim=latent_dim, hidden_dim=hidden_dim, n_gin_layers=n_gin_layers)
         # Work with logits
         self.decoder = InnerProductDecoder2(logits=True)
-
-        # self.loss
-        self._bceloss = torch.nn.BCEWithLogitsLoss(pos_weight=torch.tensor(pos_weight), reduction="sum")
 
     def forward(self, data):
         mu_ld, std_ld = self.encoder_ld(data)
@@ -232,7 +223,13 @@ class VAE(torch.nn.Module):
         return z
 
     def _bernoulli_loss(self, y_pred, y_true):
-        return self._bceloss(y_pred, y_true)
+        temp_size = torch.tensor(y_true.shape).prod()
+        temp_sum = y_true.sum()
+        posw = float(temp_size - temp_sum) / temp_sum
+        norm = temp_size / float(2 * (temp_size - temp_sum))
+        nll_loss = torch.nn.functional.binary_cross_entropy_with_logits(
+            input=y_pred, target=y_true, pos_weight=posw, reduction='sum')
+        return norm * nll_loss
     
     def _gaussian_kl(self, mean, scale):
         q = dist.Normal(mean, scale)
