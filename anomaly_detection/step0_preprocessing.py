@@ -10,12 +10,13 @@ import subprocess
 import matplotlib.pylab as plt
 from parameter_estimation.parameter_estimation import pitman_yor_est_pars, dirichlet_est_pars, \
     PoissonProcessRateEstimation
+from .utils import switched_open
 
 def preprocessing(user_args=None):
     parser = argparse.ArgumentParser(description='Parameter estimation')
     parser.add_argument('settings', type=str, nargs='+', help='File with settings')
     args = parser.parse_args(user_args)
-    with open(args.settings[0], "r", encoding="utf-8") as file:
+    with switched_open(args.settings[0], "r") as file:
         settings = json.load(file)
 
     input_file = settings["input"]["filepath"]
@@ -34,7 +35,7 @@ def preprocessing(user_args=None):
 
     destination_counter = Counter()
     source_counters = {}
-    with open(input_file, "r", encoding="utf-8") as file:
+    with switched_open(input_file, "r") as file:
         for line in file:
             time, source, dest, _ = line.strip().split("\t")
             time = float(time)
@@ -115,10 +116,10 @@ def preprocessing(user_args=None):
         dest_d[np.isnan(dest_d)] = np.nanmedian(dest_d)
 
     # Save data to file
-    with open(output1_file, "w", encoding="utf-8") as file:
+    with switched_open(output1_file, "w") as file:
         file.write("\t".join([str(i) for i in destination_process_params]) + "\n")
 
-    with open(output2_file, "w", encoding="utf-8") as file:
+    with switched_open(output2_file, "w") as file:
         if not np.all(np.isnan(dest_d)):
             for line in zip(dest_list, dest_alpha.astype(str), dest_d.astype(str)):
                 file.write("\t".join(line) + "\n")

@@ -10,9 +10,13 @@ def create_settings(
         param_est_threshold = 30,
         test_interval = [0, 1e8],
         stream_time_window = None,
-        forgetting_factor = 0.99):
+        forgetting_factor = 0.99,
+        gzip=False):
     """Create settings for anomaly detection job.
     Process type can be `DP`, `PY`, `DDCRP`, `STREAM_PY` or `POISSON_PY`"""
+    ext = ".txt.gz" if gzip else ".txt"
+    if os.name == "nt" and gzip:
+        raise ValueError("gzip option not supported on Windows")
     settings = {}
     settings["input"] = {}
     settings["input"]["filepath"] = input_file
@@ -32,18 +36,18 @@ def create_settings(
     settings["phase0"]["tstart"] = param_est_interval[0]
     settings["phase0"]["tend"] = param_est_interval[1]
     settings["phase0"]["threshold"] = param_est_threshold
-    settings["phase0"]["y_params_file"] = os.path.join(settings["output"]["root"], "phase0_y_params.txt")
-    settings["phase0"]["x_y_params_file"] = os.path.join(settings["output"]["root"], "phase0_x_y_params.txt")
+    settings["phase0"]["y_params_file"] = os.path.join(settings["output"]["root"], f"phase0_y_params{ext}")
+    settings["phase0"]["x_y_params_file"] = os.path.join(settings["output"]["root"], f"phase0_x_y_params{ext}")
     settings["phase1"] = {}
     settings["phase1"]["tstart"] = test_interval[0]
     settings["phase1"]["tend"] = test_interval[1]
-    settings["phase1"]["dest_file"] = os.path.join(settings["output"]["root"], "phase1_dest_pval.txt")
+    settings["phase1"]["dest_file"] = os.path.join(settings["output"]["root"], f"phase1_dest_pval{ext}")
     settings["phase2"] = {}
-    settings["phase2"]["dest_file"] = os.path.join(settings["output"]["root"], "phase2_source_pval.txt")
+    settings["phase2"]["dest_file"] = os.path.join(settings["output"]["root"], f"phase2_source_pval{ext}")
     settings["phase3"] = {}
-    settings["phase3"]["dest_file"] = os.path.join(settings["output"]["root"], "phase3_link_score.txt")
+    settings["phase3"]["dest_file"] = os.path.join(settings["output"]["root"], f"phase3_link_score{ext}")
     settings["phase4"] = {}
-    settings["phase4"]["dest_file"] = os.path.join(settings["output"]["root"], "phase_4_source_score.txt")
+    settings["phase4"]["dest_file"] = os.path.join(settings["output"]["root"], f"phase_4_source_score{ext}")
     return settings
 
 if __name__ == "__main__":

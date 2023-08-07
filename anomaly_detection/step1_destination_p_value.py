@@ -8,12 +8,13 @@ from parameter_estimation.parameter_estimation import PoissonProcessRateEstimati
 from processes.pitman_yor_pvalue import PitmanYorPValue, StreamingPitmanYorPValue
 from processes.ddcrp_pvalue import DDCRPPValue
 from processes.poisson_pvalue import PitmanYorMarkedPPPValue
+from .utils import switched_open
 
 def destination_process(user_args=None):
     parser = argparse.ArgumentParser(description='Parameter estimation')
     parser.add_argument('settings', type=str, nargs='+', help='File with settings')
     args = parser.parse_args(user_args)
-    with open(args.settings[0], "r", encoding="utf-8") as file:
+    with switched_open(args.settings[0], "r") as file:
         settings = json.load(file)
 
     input_file = settings["input"]["filepath"]
@@ -27,7 +28,7 @@ def destination_process(user_args=None):
     tstart = settings["phase1"]["tstart"]
     tend = settings["phase1"]["tend"]
 
-    with open(params_file, "r", encoding="utf-8") as file:
+    with switched_open(params_file, "r") as file:
         count = 0
         for line in file:
             if count > 1:
@@ -52,8 +53,8 @@ def destination_process(user_args=None):
     else:
         raise ValueError("Unknown process type")
 
-    with open(output_file, "w", encoding="utf-8") as out_file:
-        with open(input_file, "r", encoding="utf-8") as file:
+    with switched_open(output_file, "w") as out_file:
+        with switched_open(input_file, "r") as file:
             for line in file:
                 time, source, dest, anomaly = line.strip().split("\t")
                 time = float(time)

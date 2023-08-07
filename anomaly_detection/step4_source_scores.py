@@ -4,12 +4,13 @@ import json
 import argparse
 import numpy as np
 from pvalues.combiners import min_pvalue_combiner
+from .utils import switched_open
 
 def source_scores(user_args=None):
     parser = argparse.ArgumentParser(description='Parameter estimation')
     parser.add_argument('settings', type=str, nargs='+', help='File with settings')
     args = parser.parse_args(user_args)
-    with open(args.settings[0], "r", encoding="utf-8") as file:
+    with switched_open(args.settings[0], "r") as file:
         settings = json.load(file)
 
     input_file = settings["phase3"]["dest_file"]
@@ -19,8 +20,8 @@ def source_scores(user_args=None):
     current_source_scores = []
     current_source_times = []
 
-    with open(output_file, "w", encoding="utf-8") as out_file:
-        with open(input_file, "r", encoding="utf-8") as file:
+    with switched_open(output_file, "w") as out_file:
+        with switched_open(input_file, "r") as file:
             for line in file:
                 source, _, score, time = line.strip().split("\t")
                 if source != current_source:

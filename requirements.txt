@@ -8,3 +8,4 @@ matplotlib
 scipy
 ipython
 ipykernel
+gzip
