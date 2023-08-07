@@ -25,7 +25,7 @@ def switched_system_file_sort(filename):
             raise completed.stderr
     else:
         if os.path.splitext(filename)[-1] == ".gz":
-            command = f"zcat {filename} | sort -k 1 | gzip -c > {filename}"
+            command = f"zcat {filename} | sort -k 1 | gzip > temp.gz; cp -f temp.gz {filename}; rm temp.gz"
         else:
             command = f"sort -o {filename} -k 1 {filename}"
         completed = os.system(command=command)
