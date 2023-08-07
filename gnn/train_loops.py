@@ -482,6 +482,7 @@ def plot_vgrnn_training_result(history: List[dict]):
 
     _ = [axis.legend() for axis in ax.flatten()]
 
+    fig.tight_layout()
     return fig
 
 def plot_vae_training_results(history: dict):
@@ -502,4 +503,5 @@ def plot_vae_training_results(history: dict):
     ax[1].plot(history['val_loss'], alpha=0.2, color=COLORS[0])
     ax[1].plot(moving_average(history['val_loss'], 10), color=COLORS[0])
 
+    fig.tight_layout()
     return fig
