@@ -10,7 +10,7 @@ import subprocess
 import matplotlib.pylab as plt
 from parameter_estimation.parameter_estimation import pitman_yor_est_pars, dirichlet_est_pars, \
     PoissonProcessRateEstimation
-from .utils import switched_open
+from .utils import switched_open, switched_system_file_sort
 
 def preprocessing(user_args=None):
     parser = argparse.ArgumentParser(description='Parameter estimation')
@@ -131,13 +131,7 @@ def preprocessing(user_args=None):
             file.write("\t".join(["average", np.nanmedian(dest_alpha).astype(str)]) + "\n")
 
     # Sort file
-    completed = subprocess.run(["powershell", "-Command",
-        f"Get-Content {output2_file} | Sort-Object | Set-Content -Path {output2_file}"],
-        capture_output=True)
-    if completed.returncode != 0:
-        print("An error occured: %s", completed.stderr)
-    else:
-        print("Command executed successfully!")
+    _ = switched_system_file_sort(output2_file)
 
 if __name__ == "__main__":
     preprocessing()

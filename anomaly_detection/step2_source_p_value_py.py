@@ -9,7 +9,7 @@ import numpy as np
 from processes.pitman_yor_pvalue import PitmanYorPValue, StreamingPitmanYorPValue
 from processes.ddcrp_pvalue import DDCRPPValue
 from pvalues.combiners import fisher_pvalues_combiner
-from .utils import switched_open
+from .utils import switched_open, switched_system_file_sort
 
 def source_conditional_process(user_args=None):
     parser = argparse.ArgumentParser(description='Parameter estimation')
@@ -84,13 +84,7 @@ def source_conditional_process(user_args=None):
                     out_file.write("\t".join(["_".join((source, dest)), time, anomaly, y_pvalue, str(x_given_y_pvalue), str(score)]) + "\n")
 
     # Sort file
-    completed = subprocess.run(["powershell", "-Command",
-        f"Get-Content {output_file} | Sort-Object | Set-Content -Path {output_file}"],
-        capture_output=True)
-    if completed.returncode != 0:
-        print("An error occured: %s", completed.stderr)
-    else:
-        print("Command executed successfully!")
+    _ = switched_system_file_sort(output_file)
 
 if __name__ == "__main__":
     source_conditional_process()

@@ -8,7 +8,7 @@ from parameter_estimation.parameter_estimation import PoissonProcessRateEstimati
 from processes.pitman_yor_pvalue import PitmanYorPValue, StreamingPitmanYorPValue
 from processes.ddcrp_pvalue import DDCRPPValue
 from processes.poisson_pvalue import PitmanYorMarkedPPPValue
-from .utils import switched_open
+from .utils import switched_open, switched_system_file_sort
 
 def destination_process(user_args=None):
     parser = argparse.ArgumentParser(description='Parameter estimation')
@@ -75,13 +75,7 @@ def destination_process(user_args=None):
                     break
 
     # Sort file
-    completed = subprocess.run(["powershell", "-Command",
-        f"Get-Content {output_file} | Sort-Object | Set-Content -Path {output_file}"],
-        capture_output=True)
-    if completed.returncode != 0:
-        print("An error occured: %s", completed.stderr)
-    else:
-        print("Command executed successfully!")
+    _ = switched_system_file_sort(output_file)
 
 if __name__ == "__main__":
     destination_process()
