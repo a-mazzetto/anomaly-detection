@@ -19,7 +19,7 @@ def switched_system_file_sort(filename):
     """Function to sort inplace"""
     if os.name == "nt":
         completed = subprocess.run(["powershell", "-Command",
-            f"Get-Content {output_file} | Sort-Object | Set-Content -Path {output_file}"],
+            f"Get-Content {filename} | Sort-Object | Set-Content -Path {filename}"],
             capture_output=True)
         if completed.returncode != 0:
             raise completed.stderr
