@@ -11,7 +11,7 @@ from pvalues.combiners import fisher_pvalues_combiner, min_pvalue_combiner
 
 # %% Load model
 model = torch.load(
-    r"C:\Users\user\git\anomaly-detection\data\trained_on_gpu\vae_demo_simple_3.pt",
+    r"C:\Users\user\git\anomaly-detection\data\trained_on_gpu\230806c_vae_demo.pt",
     map_location=torch.device('cpu'))
 
 # %%
@@ -77,7 +77,7 @@ def score_given_model(model, datum, plots=True):
         fig.tight_layout()
         fig.show()
 
-    return fisher_score, min_score
+    return fisher_score, min_score, auc_score
 
 # %% Calculate for one example
 selected_class = dataset[dataset.y == 0]
@@ -86,25 +86,43 @@ test_datum = selected_class[idx_choice]
 score_given_model(model, test_datum)
 
 # %% Check for all
-results = np.ndarray((0, 3))
+results = np.ndarray((0, 4))
+MAX_ELEMENTS = 50
+n = {0:0, 1:0, 2:0}
 for idx, datum in enumerate(dataset):
-    print(f"{idx}th element")
-    results = np.vstack((results,
-        np.array([*score_given_model(model, datum, plots=False),
-                  datum.y.item()]).reshape(1, -1))
-    )
+    if n[int(datum.y)] < MAX_ELEMENTS:
+        print(f"{idx}th element")
+        results = np.vstack((results,
+            np.array([*score_given_model(model, datum, plots=False),
+                    datum.y.item()]).reshape(1, -1))
+        )
+    n[int(datum.y)] += 1
 
 plt.hist(results[results[:, -1] == 0][:, 0], density=True, alpha=0.3, range=[0, 1], bins=50)
 plt.hist(results[results[:, -1] == 1][:, 0], density=True, alpha=0.3, range=[0, 1], bins=50)
+plt.hist(results[results[:, -1] == 2][:, 0], density=True, alpha=0.3, range=[0, 1], bins=50)
 plt.title("Fisher")
 plt.show()
 
 plt.hist(results[results[:, -1] == 0][:, 1], density=True, alpha=0.3, range=[0, 1], bins=50)
 plt.hist(results[results[:, -1] == 1][:, 1], density=True, alpha=0.3, range=[0, 1], bins=50)
+plt.hist(results[results[:, -1] == 2][:, 1], density=True, alpha=0.3, range=[0, 1], bins=50)
 plt.xlabel("p-value")
 plt.legend(
     ("Data used to create the model",
-     "Data from another process"))
+     "Data from another process",
+     "Yet another process"))
 plt.title("Min p-value combiner")
+plt.show()
+
+plt.hist(results[results[:, -1] == 0][:, 2], density=True, alpha=0.3, range=[0.8, 1], bins=50)
+plt.hist(results[results[:, -1] == 1][:, 2], density=True, alpha=0.3, range=[0.8, 1], bins=50)
+plt.hist(results[results[:, -1] == 2][:, 2], density=True, alpha=0.3, range=[0.8, 1], bins=50)
+plt.xlabel("AUC")
+plt.legend(
+    ("Data used to create the model",
+     "Data from another process",
+     "Yet another process"))
+plt.title("AUC")
 
 # %%
