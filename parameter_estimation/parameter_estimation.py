@@ -14,7 +14,7 @@ def pitman_yor_true_kn_h1n(true_alpha, true_d, n, n_nodes):
     true_h1n_corr = true_h1n * ((n_nodes - 1) / n_nodes)**(true_kn - 1)
     return true_kn_corr, true_h1n_corr
 
-def pitman_yor_est_pars(meas_kn, meas_h1n, n, n_nodes):
+def pitman_yor_est_pars(meas_kn, meas_h1n, n, n_nodes, logaritmic=True):
     """Parameter estimation of Pitman-Yor parameters following the dissertation presented in
     ``Modelling Dynamic Network Evolution as Pitman-Yor Process" by Passino and Heard. In
     particular, we use here only the best estimation technique.
@@ -27,8 +27,12 @@ def pitman_yor_est_pars(meas_kn, meas_h1n, n, n_nodes):
     def _equation(x):
         _a, _d = x[0], x[1]
         if _a > 0 and _d > 0 and _d < 1:
-            return [gammaln(1 + _a) - gammaln(_d + _a) + _d * np.log(n) - np.log(_d) - np.log(kn_hat + _a / _d),
-                    (h1n_hat - _a) / kn_hat - _d]
+            if logaritmic:
+                return [gammaln(1 + _a) - gammaln(_d + _a) + _d * np.log(n) - np.log(_d) - np.log(kn_hat + _a / _d),
+                        (h1n_hat - _a) / kn_hat - _d]
+            else:
+                return [h1n_hat * gamma(_d + _a) - gamma(1 + _a) * n**_d,
+                        h1n_hat - _a - kn_hat * _d]
         else:
             return [-100, -100]
     root_res = root(_equation, initial_guess)
