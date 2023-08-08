@@ -15,6 +15,8 @@ from gnn.train_loops import vae_training_loop, plot_vae_training_results
 from gnn.early_stopping import EarlyStopping
 from cuda.cuda_utils import select_device
 
+from gnn.metrics import roc_auc_loss
+
 # %% Initialization
 try:
     parser = argparse.ArgumentParser(description="Graph VAE example",
@@ -58,7 +60,7 @@ except:
 
     USE_GIANT_DATASET = False
     USE_NODE_FEATURES = True
-    N_BATCH = 32
+    N_BATCH = 1
     OPT_STEP = 1e-3
     OPT_DECAY = 1e-5
 
@@ -171,7 +173,7 @@ class InnerProductDecoder2(torch.nn.Module):
 
 # %% VAE
 class VAE(torch.nn.Module):
-    def __init__(self, device, latent_dim=8, hidden_dim=16, n_gin_layers=10, prior_modes=0):
+    def __init__(self, device, latent_dim=8, hidden_dim=16, n_gin_layers=10, prior_modes=0, auc_proxy_loss=False):
         super().__init__()
 
         # prior
@@ -184,6 +186,9 @@ class VAE(torch.nn.Module):
         self.encoder_ud = Encoder(latent_dim=latent_dim, hidden_dim=hidden_dim, n_gin_layers=n_gin_layers)
         # Work with logits
         self.decoder = InnerProductDecoder2(logits=True)
+
+        # Loss type
+        self.auc_proxy_loss = auc_proxy_loss
 
     def forward(self, data):
         mu_ld, std_ld = self.encoder_ld(data)
@@ -210,7 +215,10 @@ class VAE(torch.nn.Module):
         assert adj_pred.shape == dense_adj.shape
         assert not torch.any(torch.isnan(adj_pred))
         assert not torch.any(torch.isnan(dense_adj))
-        nll_loss = self._bernoulli_loss(adj_pred, dense_adj)
+        if self.auc_proxy_loss:
+            nll_loss = self._auc_proxy_loss(adj_pred, dense_adj)
+        else:
+            nll_loss = self._bernoulli_loss(adj_pred, dense_adj)
         if self.simple_prior:
             kl_loss = self._gaussian_kl(mu_ld, std_ld) + self._gaussian_kl(mu_ud, std_ud)
         else:
@@ -229,6 +237,16 @@ class VAE(torch.nn.Module):
         norm = temp_size / float(2 * (temp_size - temp_sum))
         nll_loss = torch.nn.functional.binary_cross_entropy_with_logits(
             input=y_pred, target=y_true, pos_weight=posw, reduction='sum')
+        return norm * nll_loss
+    
+    def _auc_proxy_loss(self, y_pred, y_true):
+        temp_size = torch.tensor(y_true.shape).prod()
+        temp_sum = y_true.sum()
+        posw = float(temp_size - temp_sum) / temp_sum
+        norm = temp_size / float(2 * (temp_size - temp_sum))
+        nll_loss = roc_auc_loss(
+            labels=y_pred, logits=y_true, weights=posw * y_pred
+            ).sum()
         return norm * nll_loss
     
     def _gaussian_kl(self, mean, scale):
@@ -257,7 +275,7 @@ if __name__ == "__main__":
     device = select_device()
 
     model = VAE(device=device, prior_modes=N_PRIOR_MODES, latent_dim=LATENT_DIM, hidden_dim=HIDDEN_DIM,
-                n_gin_layers=N_GIN_LAYERS)
+                n_gin_layers=N_GIN_LAYERS, auc_proxy_loss=True)
     optimizer = torch.optim.Adam(model.parameters(), lr=OPT_STEP, weight_decay=OPT_DECAY)
 
     history = vae_training_loop(model=model, optimizer=optimizer, num_epochs=NUM_EPOCHS,
