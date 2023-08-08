@@ -2,16 +2,18 @@
 # %% Imports
 import numpy as np
 from sklearn.metrics import roc_auc_score
+from scipy.special import expit
 import matplotlib.pyplot as plt
 import torch
 from torch_geometric.utils import to_dense_adj
 from gnn_data_generation.three_graph_families_dataset import ThreeGraphFamiliesDataset
 from graph_vae import *
 from pvalues.combiners import fisher_pvalues_combiner, min_pvalue_combiner
+from pvalues.auc_pvalue import auc_and_pvalue
 
 # %% Load model
 model = torch.load(
-    r"C:\Users\user\git\anomaly-detection\data\trained_on_gpu\230806c_vae_demo.pt",
+    r"C:\Users\user\git\anomaly-detection\data\trained_on_gpu\230808_vae_demo.pt",
     map_location=torch.device('cpu'))
 
 # %%
@@ -25,59 +27,35 @@ def score_given_model(model, datum, plots=True):
     # Bernoulli probabilities
     encoded_ld = model.encoder_ld(datum)
     encoded_ud = model.encoder_ud(datum)
-    mega_sample = model.decoder(
+    mega_logits = model.decoder(
         torch.stack([model.sampler(*encoded_ld) for _ in range(1000)]),
-        torch.stack([model.sampler(*encoded_ud) for _ in range(1000)]))
-    mega_sample = mega_sample.detach().mean(dim=[0]).sigmoid()
+        torch.stack([model.sampler(*encoded_ud) for _ in range(1000)])).detach().numpy()
+    mega_logits_mean = np.mean(mega_logits, axis=0)
 
     # Probabilities of y_true
-    y_true = to_dense_adj(datum.edge_index)[0]
-    probs = y_true * mega_sample + (1 - mega_sample) * (1 - y_true)
-
-    # Should be the same as
-    bernoulli_dist = dist.Bernoulli(probs=mega_sample)
-    probs_2 = bernoulli_dist.log_prob(y_true).exp()
-    # assert equality
-    assert torch.allclose(probs, probs_2)
-
-    # AUC score
-    auc_score = roc_auc_score(
-        y_true.numpy().flatten(),
-        mega_sample.numpy().flatten())
-    print(f"AUC: {auc_score}")
-
-    # I keep the probs only in the region that were one for either matrix
-    locs = (mega_sample > 0.5).type(torch.int).logical_or(y_true)
-    selected_probs = probs[locs]
-
-    # Calculate p-values
-    if len(selected_probs) > 0:
-        fisher_score = fisher_pvalues_combiner(selected_probs.flatten().numpy())
-        min_score = min_pvalue_combiner(selected_probs.flatten().numpy())
-    else:
-        fisher_score = 0
-        min_score = 0
+    y_true = to_dense_adj(datum.edge_index)[0, ...].numpy()
+    mega_logits_auc = roc_auc_score(y_true.flatten(), mega_logits_mean.flatten())
+    auc_dist = np.ndarray(shape=(0,))
+    for _ in range(1000):
+        _index_sample = np.random.choice(1000, size=1000, replace=True)
+        _mega_logits_mean = np.mean(mega_logits[_index_sample, ...], axis=0)
+        auc_dist = np.append(
+            auc_dist, roc_auc_score(y_true.flatten(), _mega_logits_mean.flatten()))
+    pvalue = np.sum(auc_dist <= mega_logits_auc) / len(auc_dist)
 
     if plots:
-        print(f"Fisher p-value: {fisher_score}")
-        print(f"Min p-value: {min_score}")
-
-        n_true = y_true.sum().numpy().astype(int)
-        n_pred = (mega_sample > 0.25).type(torch.int).sum().numpy().astype(int)
-        n_common = y_true.logical_and((mega_sample > 0.25).type(torch.int)).sum().numpy().astype(int)
-        print(f"Aimed {n_common}, missed {n_true - n_common}, misselected {n_pred - n_common}")
-
+        mega_mean = expit(mega_logits_mean)
         fig, ax = plt.subplots(1, 3)
         ax[0].imshow(y_true)
         ax[0].set_title("True Adjacency")
-        ax[1].imshow(mega_sample)
+        ax[1].imshow(mega_mean)
         ax[1].set_title("Model probability")
-        ax[2].imshow((mega_sample > 0.25).type(torch.float))
-        ax[2].set_title("Model probability thresholded")
+        ax[2].imshow((mega_mean > 0.25).astype(float))
+        ax[2].set_title("Model probability thresholded 0.25")
         fig.tight_layout()
         fig.show()
 
-    return fisher_score, min_score, auc_score
+    return mega_logits_auc, pvalue
 
 # %% Calculate for one example
 selected_class = dataset[dataset.y == 0]
@@ -86,7 +64,7 @@ test_datum = selected_class[idx_choice]
 score_given_model(model, test_datum)
 
 # %% Check for all
-results = np.ndarray((0, 4))
+results = np.ndarray((0, 2))
 MAX_ELEMENTS = 50
 n = {0:0, 1:0, 2:0}
 for idx, datum in enumerate(dataset):
@@ -101,28 +79,19 @@ for idx, datum in enumerate(dataset):
 plt.hist(results[results[:, -1] == 0][:, 0], density=True, alpha=0.3, range=[0, 1], bins=50)
 plt.hist(results[results[:, -1] == 1][:, 0], density=True, alpha=0.3, range=[0, 1], bins=50)
 plt.hist(results[results[:, -1] == 2][:, 0], density=True, alpha=0.3, range=[0, 1], bins=50)
-plt.title("Fisher")
+plt.title("AUC")
+plt.legend(
+    ("Data used to create the model",
+     "Data from another process",
+     "Data from yet another process"))
 plt.show()
 
 plt.hist(results[results[:, -1] == 0][:, 1], density=True, alpha=0.3, range=[0, 1], bins=50)
 plt.hist(results[results[:, -1] == 1][:, 1], density=True, alpha=0.3, range=[0, 1], bins=50)
 plt.hist(results[results[:, -1] == 2][:, 1], density=True, alpha=0.3, range=[0, 1], bins=50)
-plt.xlabel("p-value")
+plt.title("p-value")
 plt.legend(
     ("Data used to create the model",
      "Data from another process",
-     "Yet another process"))
-plt.title("Min p-value combiner")
+     "Data from yet another process"))
 plt.show()
-
-plt.hist(results[results[:, -1] == 0][:, 2], density=True, alpha=0.3, range=[0.8, 1], bins=50)
-plt.hist(results[results[:, -1] == 1][:, 2], density=True, alpha=0.3, range=[0.8, 1], bins=50)
-plt.hist(results[results[:, -1] == 2][:, 2], density=True, alpha=0.3, range=[0.8, 1], bins=50)
-plt.xlabel("AUC")
-plt.legend(
-    ("Data used to create the model",
-     "Data from another process",
-     "Yet another process"))
-plt.title("AUC")
-
-# %%
