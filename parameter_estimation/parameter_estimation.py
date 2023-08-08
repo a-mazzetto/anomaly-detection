@@ -1,7 +1,7 @@
 """Functions to estimate parameters"""
 import numpy as np
-from scipy.special import gamma
-from scipy.optimize import fsolve
+from scipy.special import gamma, gammaln
+from scipy.optimize import fsolve, root
 
 def pitman_yor_true_kn_h1n(true_alpha, true_d, n, n_nodes):
     """Parameter estimation of Pitman-Yor parameters following the dissertation presented in
@@ -23,11 +23,19 @@ def pitman_yor_est_pars(meas_kn, meas_h1n, n, n_nodes):
     kn_hat = np.log(1 - meas_kn / n_nodes) / np.log((n_nodes - 1) / n_nodes)
     h1n_hat = meas_h1n * (n_nodes / (n_nodes - 1))**(kn_hat - 1)
     # Estimate parameters under approximation `Method 2` proposed in the paper
+    initial_guess = [kn_hat / np.log(n), h1n_hat / kn_hat]
     def _equation(x):
         _a, _d = x[0], x[1]
-        return [h1n_hat * gamma(_d + _a) - gamma(1 + _a) * n**_d,
-                h1n_hat - _a - kn_hat * _d]
-    alpha_hat, d_hat = fsolve(_equation, [kn_hat / np.log(n), h1n_hat / kn_hat])
+        if _a > 0 and _d > 0 and _d < 1:
+            return [gammaln(1 + _a) - gammaln(_d + _a) + _d * np.log(n) - np.log(_d) - np.log(kn_hat + _a / _d),
+                    (h1n_hat - _a) / kn_hat - _d]
+        else:
+            return [-100, -100]
+    root_res = root(_equation, initial_guess)
+    if root_res.success:
+        alpha_hat, d_hat = root_res.x
+    else:
+        alpha_hat, d_hat = initial_guess
     return alpha_hat, d_hat
 
 def dirichlet_true_kn(true_alpha, n, n_nodes):
@@ -47,9 +55,17 @@ def dirichlet_est_pars(meas_kn, n, n_nodes):
     # Adjustment under the Birthday Problem
     kn_hat = np.log(1 - meas_kn / n_nodes) / np.log((n_nodes - 1) / n_nodes)
     # Estimate parameters under approximation `Method 2` proposed in the paper
+    initial_guess = kn_hat / np.log(n)
     def _equation(_a):
-        return _a * np.log(1 + n / _a) - kn_hat
-    alpha_hat = fsolve(_equation, kn_hat / np.log(n))[0]
+        if _a > 0:
+            return _a * np.log(1 + n / _a) - kn_hat
+        else:
+            return -100
+    root_res = root(_equation, initial_guess)
+    if root_res.success:
+        alpha_hat = root_res.x
+    else:
+        alpha_hat = initial_guess
     return alpha_hat
 
 class ForgettingFactorsMean():
