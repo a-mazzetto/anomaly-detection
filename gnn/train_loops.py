@@ -349,15 +349,19 @@ def vae_training_loop(model, optimizer, num_epochs, train_dl, val_dl, early_stop
         device = select_device()
     model.to(device)
 
-    history = {'loss': [], 'val_loss': []}
+    history = {'loss': [], 'val_loss': [], 'val_auc': [], 'val_logp': []}
 
     train_losses = []
     val_losses = []
+    val_aucs = []
+    val_logps = []
     
     for epoch in range(num_epochs):
  
         train_loss = 0.0
         val_loss = 0.0
+        val_auc = 0.0
+        val_logp = 0.0
 
         model.train()
         for train_input in train_dl:
@@ -374,15 +378,28 @@ def vae_training_loop(model, optimizer, num_epochs, train_dl, val_dl, early_stop
 
             for val_input in val_dl:
                 val_input.to(device)
-                nll, kl, _, _ = model(val_input)
+                nll, kl, pred_adj, true_adj = model(val_input)
                 elbo = nll + kl
                 val_loss += elbo.item() / len(val_input)
+                # Metrics
+                pred_adj = pred_adj.detach().numpy()
+                true_adj = true_adj.detach().numpy()
+                _sum_auc = 0
+                for _true, _pred in zip(true_adj, pred_adj):
+                    _sum_auc += roc_auc_score(_true.flatten(), _pred.flatten())
+                val_auc += _sum_auc / len(val_input)
+                val_logp += np.sum(np.log(pred_adj * true_adj + (1 - pred_adj) * (1 - true_adj) + 1e-10)) / \
+                    len(val_input)
 
         train_loss = train_loss / len(train_dl)
         val_loss = val_loss / len(val_dl)
+        val_auc = val_auc / len(val_dl)
+        val_logp = val_logp / len(val_dl)
 
         train_losses.append(train_loss)
         val_losses.append(val_loss)
+        val_aucs.append(val_auc)
+        val_logps.append(val_logp)
         
         if print_freq is not None and (epoch + 1) % print_freq == 0:
             print('Epoch: {} - Train Loss: {:.4f} - Validation Loss: {:.4f}'.format(epoch + 1, train_loss, val_loss))
@@ -399,6 +416,8 @@ def vae_training_loop(model, optimizer, num_epochs, train_dl, val_dl, early_stop
 
     history['loss'] = train_losses
     history['val_loss'] = val_losses
+    history['val_auc'] = val_aucs
+    history['val_logp'] = val_logps
 
     return history
 
@@ -491,17 +510,25 @@ def plot_vae_training_results(history: dict):
     
     COLORS = ["blue", "red", "green", "cyan", "magenta"]
 
-    fig, ax = plt.subplots(nrows=1, ncols=2)
+    fig, ax = plt.subplots(nrows=2, ncols=2)
     fig.tight_layout()
-    ax[0].set_title('Train loss')
-    ax[1].set_title('Test loss')
+    ax[0, 0].set_title('Train loss')
+    ax[0, 1].set_title('Test loss')
+    ax[1, 0].set_title('Test AUC')
+    ax[1, 1].set_title('Test logp')
     _ = [axis.grid() for axis in ax.flatten()]
 
-    ax[0].plot(history['loss'], alpha=0.2, color=COLORS[0])
-    ax[0].plot(moving_average(history['loss'], 10), color=COLORS[0])
+    ax[0, 0].plot(history['loss'], alpha=0.2, color=COLORS[0])
+    ax[0, 0].plot(moving_average(history['loss'], 10), color=COLORS[0])
 
-    ax[1].plot(history['val_loss'], alpha=0.2, color=COLORS[0])
-    ax[1].plot(moving_average(history['val_loss'], 10), color=COLORS[0])
+    ax[0, 1].plot(history['val_loss'], alpha=0.2, color=COLORS[0])
+    ax[0, 1].plot(moving_average(history['val_loss'], 10), color=COLORS[0])
+
+    ax[1, 0].plot(history['val_auc'], alpha=0.2, color=COLORS[0])
+    ax[1, 0].plot(moving_average(history['val_auc'], 10), color=COLORS[0])
+
+    ax[1, 1].plot(history['val_logp'], alpha=0.2, color=COLORS[0])
+    ax[1, 1].plot(moving_average(history['val_logp'], 10), color=COLORS[0])
 
     fig.tight_layout()
     return fig
