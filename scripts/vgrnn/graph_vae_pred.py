@@ -13,7 +13,7 @@ from pvalues.auc_pvalue import auc_and_pvalue
 
 # %% Load model
 model = torch.load(
-    r"C:\Users\user\git\anomaly-detection\data\trained_on_gpu\230808_vae_demo.pt",
+    r"C:\Users\user\git\anomaly-detection\data\trained_on_gpu\230809_vae_demo.pt",
     map_location=torch.device('cpu'))
 
 # %%
@@ -35,13 +35,8 @@ def score_given_model(model, datum, plots=True):
     # Probabilities of y_true
     y_true = to_dense_adj(datum.edge_index)[0, ...].numpy()
     mega_logits_auc = roc_auc_score(y_true.flatten(), mega_logits_mean.flatten())
-    auc_dist = np.ndarray(shape=(0,))
-    for _ in range(1000):
-        _index_sample = np.random.choice(1000, size=1000, replace=True)
-        _mega_logits_mean = np.mean(mega_logits[_index_sample, ...], axis=0)
-        auc_dist = np.append(
-            auc_dist, roc_auc_score(y_true.flatten(), _mega_logits_mean.flatten()))
-    pvalue = np.sum(auc_dist <= mega_logits_auc) / len(auc_dist)
+    # If p(x = 1) = y, probability of doing worse when x = 1 is y, probability of doing worse when x = 0 is 1 - y
+    log_prob = np.sum(np.log(y_true * expit(mega_logits_mean) + (1 - y_true) * (1 - expit(mega_logits_mean))))
 
     if plots:
         mega_mean = expit(mega_logits_mean)
@@ -55,7 +50,7 @@ def score_given_model(model, datum, plots=True):
         fig.tight_layout()
         fig.show()
 
-    return mega_logits_auc, pvalue
+    return mega_logits_auc, log_prob
 
 # %% Calculate for one example
 selected_class = dataset[dataset.y == 0]
@@ -86,10 +81,16 @@ plt.legend(
      "Data from yet another process"))
 plt.show()
 
-plt.hist(results[results[:, -1] == 0][:, 1], density=True, alpha=0.3, range=[0, 1], bins=50)
-plt.hist(results[results[:, -1] == 1][:, 1], density=True, alpha=0.3, range=[0, 1], bins=50)
-plt.hist(results[results[:, -1] == 2][:, 1], density=True, alpha=0.3, range=[0, 1], bins=50)
-plt.title("p-value")
+plt.hist(results[results[:, -1] == 0][:, 1], density=True, alpha=0.3, color="blue")
+plt.vlines(results[results[:, -1] == 0][:, 1].mean(), ymin=0, ymax=0.0012,
+           linestyles="--", color="blue")
+plt.hist(results[results[:, -1] == 1][:, 1], density=True, alpha=0.3, color="red")
+plt.vlines(results[results[:, -1] == 1][:, 1].mean(), ymin=0, ymax=0.0012,
+           linestyles="--", color="red")
+plt.hist(results[results[:, -1] == 2][:, 1], density=True, alpha=0.3, color="green")
+plt.vlines(results[results[:, -1] == 2][:, 1].mean(), ymin=0, ymax=0.0012,
+           linestyles="--", color="green")
+plt.title("log_prob")
 plt.legend(
     ("Data used to create the model",
      "Data from another process",
