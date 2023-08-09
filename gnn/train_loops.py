@@ -525,10 +525,14 @@ def plot_vae_training_results(history: dict):
     ax[0, 1].plot(moving_average(history['val_loss'], 10), color=COLORS[0])
 
     ax[1, 0].plot(history['val_auc'], alpha=0.2, color=COLORS[0])
-    ax[1, 0].plot(moving_average(history['val_auc'], 10), color=COLORS[0])
+    ma_auc = moving_average(history['val_auc'], 10)
+    ax[1, 0].plot(ma_auc, color=COLORS[0])
+    ax[1, 0].annotate(f'Max: {max(ma_auc):.4f}', xy=(0.5, 0.1), xycoords='axes fraction')
 
     ax[1, 1].plot(history['val_logp'], alpha=0.2, color=COLORS[0])
-    ax[1, 1].plot(moving_average(history['val_logp'], 10), color=COLORS[0])
+    ma_logp = moving_average(history['val_logp'], 10)
+    ax[1, 1].plot(ma_logp, color=COLORS[0])
+    ax[1, 1].annotate(f'Max: {max(ma_logp):.2f}', xy=(0.5, 0.1), xycoords='axes fraction')
 
     fig.tight_layout()
     return fig
