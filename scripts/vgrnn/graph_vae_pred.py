@@ -64,7 +64,7 @@ test_datum = selected_class[idx_choice]
 score_given_model(model, test_datum)
 
 # %% Check for all
-results = np.ndarray((0, 2))
+results = np.ndarray((0, 3))
 MAX_ELEMENTS = 50
 n = {0:0, 1:0, 2:0}
 for idx, datum in enumerate(dataset):
@@ -76,9 +76,9 @@ for idx, datum in enumerate(dataset):
         )
     n[int(datum.y)] += 1
 
-plt.hist(results[results[:, -1] == 0][:, 0], density=True, alpha=0.3, range=[0, 1], bins=50)
-plt.hist(results[results[:, -1] == 1][:, 0], density=True, alpha=0.3, range=[0, 1], bins=50)
-plt.hist(results[results[:, -1] == 2][:, 0], density=True, alpha=0.3, range=[0, 1], bins=50)
+plt.hist(results[results[:, -1] == 0][:, 0], density=True, alpha=0.3, range=[0.8, 1], bins=50)
+plt.hist(results[results[:, -1] == 1][:, 0], density=True, alpha=0.3, range=[0.8, 1], bins=50)
+plt.hist(results[results[:, -1] == 2][:, 0], density=True, alpha=0.3, range=[0.8, 1], bins=50)
 plt.title("AUC")
 plt.legend(
     ("Data used to create the model",
@@ -95,3 +95,5 @@ plt.legend(
      "Data from another process",
      "Data from yet another process"))
 plt.show()
+
+# %%
