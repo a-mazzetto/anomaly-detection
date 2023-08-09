@@ -127,8 +127,10 @@ class Encoder(torch.nn.Module):
             torch.nn.Softplus()
         )
 
-    def forward(self, data):
+    def forward(self, data, addition=None):
         hidden = self.gin(data.x, data.edge_index)
+        if addition is not None:
+            hidden += addition[data.batch]
         return self.mean(hidden), self.std(hidden)
 
 encoder = Encoder()
@@ -182,12 +184,15 @@ class VAE(torch.nn.Module):
         # encoder, decoder
         self.encoder_ld = Encoder(latent_dim=latent_dim, hidden_dim=hidden_dim, n_gin_layers=n_gin_layers)
         self.encoder_ud = Encoder(latent_dim=latent_dim, hidden_dim=hidden_dim, n_gin_layers=n_gin_layers)
+        self.graph_encoder = Encoder(latent_dim=hidden_dim, hidden_dim=hidden_dim, n_gin_layers=n_gin_layers)
         # Work with logits
         self.decoder = InnerProductDecoder2(logits=True)
 
     def forward(self, data):
-        mu_ld, std_ld = self.encoder_ld(data)
-        mu_ud, std_ud = self.encoder_ud(data)
+        graph_pool, _ = self.graph_encoder(data)
+        graph_pool = global_mean_pool(graph_pool, data.batch)
+        mu_ld, std_ld = self.encoder_ld(data, addition=graph_pool)
+        mu_ud, std_ud = self.encoder_ud(data, addition=graph_pool)
         z_ld = self.sampler(mu_ld, std_ld)
         z_ud = self.sampler(mu_ud, std_ud)
         if data.batch is None:
