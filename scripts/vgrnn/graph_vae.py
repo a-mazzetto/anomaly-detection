@@ -34,6 +34,9 @@ try:
     parser.add_argument("-ngl", "--n_gin_layers", type=int, default=10, help="Number GIN layers")
     parser.add_argument("-modes", "--n_modes", type=int, default=0, help="Mixture of Gaussians?")
 
+    parser.add_argument("-bgenc", "--b_graph_enc", action="store_false", help="Use graph encoder?")
+    parser.add_argument("-pwgt", "--pos_weight", type=float, default=None, help="Positive label weight")
+
     args = parser.parse_args()
     config = vars(args)
 
@@ -51,6 +54,9 @@ try:
     HIDDEN_DIM = config["hidden_dim"]
     N_GIN_LAYERS = config["n_gin_layers"]
     N_PRIOR_MODES = config["n_modes"]
+
+    USE_GRAPH_ENC = config["b_graph_enc"]
+    POS_WEIGHT = config["pos_weight"]
 
     print(config)
 except:
@@ -70,6 +76,9 @@ except:
     HIDDEN_DIM = 54
     N_GIN_LAYERS = 10
     N_PRIOR_MODES = 3
+
+    USE_GRAPH_ENC = True
+    POS_WEIGHT = None
 
 SIMPLE_PRIOR = N_PRIOR_MODES < 1
 
@@ -130,11 +139,28 @@ class Encoder(torch.nn.Module):
     def forward(self, data, addition=None):
         hidden = self.gin(data.x, data.edge_index)
         if addition is not None:
-            hidden += addition[data.batch]
+            hidden += addition
         return self.mean(hidden), self.std(hidden)
 
 encoder = Encoder()
 loc, scale = encoder(dataset[0])
+
+# %% Graph Encoder
+class GraphEncoder(torch.nn.Module):
+    """Lern a full Graph embedding and replicate the vector for each node"""
+    def __init__(self, hidden_dim=16, n_gin_layers=10):
+        super().__init__()
+        self.gin = GIN(in_channels=-1, hidden_channels=hidden_dim, num_layers=n_gin_layers, dropout=0.2)
+
+    def forward(self, data):
+        hidden = self.gin(data.x, data.edge_index)
+        hidden_pool = global_mean_pool(hidden, data.batch)
+        hidden = hidden_pool[data.batch]
+        return hidden
+
+graph_encoder = GraphEncoder()
+encoding = graph_encoder(dataset[0])
+
 # %% Decoder
 
 class InnerProductDecoder(torch.nn.Module):
@@ -173,7 +199,8 @@ class InnerProductDecoder2(torch.nn.Module):
 
 # %% VAE
 class VAE(torch.nn.Module):
-    def __init__(self, device, latent_dim=8, hidden_dim=16, n_gin_layers=10, prior_modes=0):
+    def __init__(self, device, latent_dim=8, hidden_dim=16, n_gin_layers=10, prior_modes=0,
+                 graph_enc=False, pos_weight=None):
         super().__init__()
 
         # prior
@@ -184,15 +211,23 @@ class VAE(torch.nn.Module):
         # encoder, decoder
         self.encoder_ld = Encoder(latent_dim=latent_dim, hidden_dim=hidden_dim, n_gin_layers=n_gin_layers)
         self.encoder_ud = Encoder(latent_dim=latent_dim, hidden_dim=hidden_dim, n_gin_layers=n_gin_layers)
-        self.graph_encoder = Encoder(latent_dim=hidden_dim, hidden_dim=hidden_dim, n_gin_layers=n_gin_layers)
+        self.b_graph_enc = graph_enc
+        if graph_enc:
+            self.graph_encoder = GraphEncoder(hidden_dim=hidden_dim, n_gin_layers=n_gin_layers)
+
         # Work with logits
         self.decoder = InnerProductDecoder2(logits=True)
 
+        # Loss
+        self.pos_weight = pos_weight
+
     def forward(self, data):
-        graph_pool, _ = self.graph_encoder(data)
-        graph_pool = global_mean_pool(graph_pool, data.batch)
-        mu_ld, std_ld = self.encoder_ld(data, addition=graph_pool)
-        mu_ud, std_ud = self.encoder_ud(data, addition=graph_pool)
+        if self.b_graph_enc:
+            graph_enc = self.graph_encoder(data)
+        else:
+            graph_enc = None
+        mu_ld, std_ld = self.encoder_ld(data, addition=graph_enc)
+        mu_ud, std_ud = self.encoder_ud(data, addition=graph_enc)
         z_ld = self.sampler(mu_ld, std_ld)
         z_ud = self.sampler(mu_ud, std_ud)
         if data.batch is None:
@@ -230,11 +265,13 @@ class VAE(torch.nn.Module):
     def _bernoulli_loss(self, y_pred, y_true):
         temp_size = torch.tensor(y_true.shape).prod()
         temp_sum = y_true.sum()
-        posw = float(temp_size - temp_sum) / temp_sum
-        norm = temp_size / float(2 * (temp_size - temp_sum))
+        if self.pos_weight is None:
+            posw = float(temp_size - temp_sum) / temp_sum
+        else:
+            posw = self.pos_weight
         nll_loss = torch.nn.functional.binary_cross_entropy_with_logits(
             input=y_pred, target=y_true, pos_weight=posw, reduction='sum')
-        return norm * nll_loss
+        return nll_loss
     
     def _gaussian_kl(self, mean, scale):
         q = dist.Normal(mean, scale)
@@ -262,7 +299,7 @@ if __name__ == "__main__":
     device = select_device()
 
     model = VAE(device=device, prior_modes=N_PRIOR_MODES, latent_dim=LATENT_DIM, hidden_dim=HIDDEN_DIM,
-                n_gin_layers=N_GIN_LAYERS)
+                n_gin_layers=N_GIN_LAYERS, graph_enc=USE_GRAPH_ENC, pos_weight=POS_WEIGHT)
     optimizer = torch.optim.Adam(model.parameters(), lr=OPT_STEP, weight_decay=OPT_DECAY)
 
     history = vae_training_loop(model=model, optimizer=optimizer, num_epochs=NUM_EPOCHS,
