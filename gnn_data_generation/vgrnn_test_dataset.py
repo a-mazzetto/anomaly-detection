@@ -31,7 +31,7 @@ def create_training_dataset(save_path, aggregation_interval=15 * 60, dyn_steps=4
             discretize_time=False,
             file_name=None)
         agg_dataset = simple_aggregate_dataset_into_graphs(
-            dataset, aggregation_interval, rename=False)
+            dataset, aggregation_interval, rename=False)[0]
 
         dynamic_graph.extend([agg_dataset[i:i+dyn_steps] for \
                               i in range(len(agg_dataset)- (dyn_steps - 1))])

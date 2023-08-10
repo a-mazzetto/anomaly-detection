@@ -33,7 +33,7 @@ def create_dataset(save_path, aggregation_interval=15 * 60):
             discretize_time=False,
             file_name=None)
 
-        first_group_data.extend(simple_aggregate_dataset_into_graphs(dataset, aggregation_interval))
+        first_group_data.extend(simple_aggregate_dataset_into_graphs(dataset, aggregation_interval)[0])
 
     np.save(os.path.join(save_path, "first_group_data.npy"), np.array(first_group_data, dtype=object), allow_pickle=True)
 

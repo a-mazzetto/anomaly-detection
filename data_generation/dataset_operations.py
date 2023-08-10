@@ -26,15 +26,19 @@ def simple_aggregate_dataset_into_graphs(dataset:List[tuple], time_interval:floa
     aggregated_times = aggregated_times.astype(int)
     n_intervals = int(times[-1] // time_interval)
     graphs_by_links = []
+    n_graph = []
     for i in range(n_intervals):
-        idxstart, idxend = np.where(aggregated_times == i)[0][[0, -1]]
-        unique_links = np.unique(links[idxstart:idxend], axis=0)
-        unique_nodes = np.unique(unique_links)
-        if rename:
-            mapping = {index: i for i, index in enumerate(unique_nodes)}
-            mapping_vec = np.vectorize(lambda x: mapping[x])
-            renamed_unique_links = mapping_vec(unique_links)
-            graphs_by_links.append(renamed_unique_links)
-        else:
-            graphs_by_links.append(unique_links)
-    return graphs_by_links
+        if np.any(aggregated_times == i):
+            idxstart, idxend = np.where(aggregated_times == i)[0][[0, -1]]
+            if idxend > idxstart:
+                unique_links = np.unique(links[idxstart:idxend], axis=0)
+                unique_nodes = np.unique(unique_links)
+                if rename:
+                    mapping = {index: i for i, index in enumerate(unique_nodes)}
+                    mapping_vec = np.vectorize(lambda x: mapping[x])
+                    renamed_unique_links = mapping_vec(unique_links)
+                    graphs_by_links.append(renamed_unique_links)
+                else:
+                    graphs_by_links.append(unique_links)
+            n_graph.append(i)
+    return graphs_by_links, n_graph
