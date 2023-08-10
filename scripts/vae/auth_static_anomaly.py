@@ -43,6 +43,7 @@ train_dataset = torchdata_from_links_list(
 deployment_dataset = torchdata_from_links_list(
     [_agg for _agg, _n in zip(aggregated_dataset, n_graph) if _n > n_training_graphs],
     max_nodes=NNODES)
+deployment_dataset_anomaly = [_n in anomalous_graphs for _n in n_graph if _n > n_training_graphs],
 
 # %% Model Training
 train_idx, test_idx = torch.utils.data.random_split(
@@ -69,11 +70,17 @@ os.makedirs("./plots", exist_ok=True)
 fig.savefig("./plots/auth_static.pdf")
 
 # %%
-model = torch.load("./data/auth_static.pt",
+model = torch.load("./data/auth_static/230810_auth_static.pt",
                    map_location=torch.device('cpu'))
 
 model.eval()
 
 # %%
-vae_score_given_model(model, deployment_dataset[0])
+scores = []
+for datum in deployment_dataset:
+    _, logp = vae_score_given_model(model, datum, plots=False)
+    scores.append(logp)
+
+anomalous_idxs = np.where(deployment_dataset_anomaly)
+sorted_scores_args = np.argsort(scores)
 # %%
