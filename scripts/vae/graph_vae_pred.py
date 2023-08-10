@@ -1,64 +1,27 @@
 """Evaluate a graph given the model"""
 # %% Imports
 import numpy as np
-from sklearn.metrics import roc_auc_score, confusion_matrix
-from scipy.special import expit
 import matplotlib.pyplot as plt
 import torch
-from torch_geometric.utils import to_dense_adj
 from gnn_data_generation.three_graph_families_dataset import ThreeGraphFamiliesDataset
-from graph_vae import *
-from pvalues.combiners import fisher_pvalues_combiner, min_pvalue_combiner
-from pvalues.auc_pvalue import auc_and_pvalue
+from gnn.vae import *
 
 # %% Load model
 model = torch.load(
-    r"C:\Users\user\git\anomaly-detection\data\trained_on_gpu\230809_vae_demo.pt",
+    r"C:\Users\user\git\anomaly-detection\data\trained_on_gpu\230810_vae_demo_2.pt",
     map_location=torch.device('cpu'))
 
 # %%
 model.eval()
+
 # %% Dataset
 dataset = ThreeGraphFamiliesDataset(use_features=True)
-
-# %%
-def score_given_model(model, datum, plots=True):
-    """Assuming model of type Graph VAE"""
-    # Bernoulli probabilities
-    encoded_ld = model.encoder_ld(datum)
-    encoded_ud = model.encoder_ud(datum)
-    mega_logits = model.decoder(
-        torch.stack([model.sampler(*encoded_ld) for _ in range(1000)]),
-        torch.stack([model.sampler(*encoded_ud) for _ in range(1000)])).detach().numpy()
-    mega_logits_mean = np.mean(mega_logits, axis=0)
-
-    # Probabilities of y_true
-    y_true = to_dense_adj(datum.edge_index)[0, ...].numpy()
-    mega_logits_auc = roc_auc_score(y_true.flatten(), mega_logits_mean.flatten())
-    # If p(x = 1) = y, probability of doing worse when x = 1 is y, probability of doing worse when x = 0 is 1 - y
-    log_prob = np.sum(np.log(y_true * expit(mega_logits_mean) + (1 - y_true) * (1 - expit(mega_logits_mean))))
-
-    if plots:
-        mega_mean = expit(mega_logits_mean)
-        # Confusion matrix with threshold 0.5
-        print(confusion_matrix(y_true.flatten(), mega_mean.flatten() > 0.5, normalize="all"))
-        fig, ax = plt.subplots(1, 3)
-        ax[0].imshow(y_true)
-        ax[0].set_title("True Adjacency")
-        ax[1].imshow(mega_mean)
-        ax[1].set_title("Model probability")
-        ax[2].imshow((mega_mean > 0.5).astype(float))
-        ax[2].set_title("Model probability thresholded 0.5")
-        fig.tight_layout()
-        fig.show()
-
-    return mega_logits_auc, log_prob
 
 # %% Calculate for one example
 selected_class = dataset[dataset.y == 0]
 idx_choice = np.random.choice(len(selected_class))
 test_datum = selected_class[idx_choice]
-score_given_model(model, test_datum)
+vae_score_given_model(model, test_datum)
 
 # %% Check for all
 results = np.ndarray((0, 3))
@@ -68,7 +31,7 @@ for idx, datum in enumerate(dataset):
     if n[int(datum.y)] < MAX_ELEMENTS:
         print(f"{idx}th element")
         results = np.vstack((results,
-            np.array([*score_given_model(model, datum, plots=False),
+            np.array([*vae_score_given_model(model, datum, plots=False),
                     datum.y.item()]).reshape(1, -1))
         )
     n[int(datum.y)] += 1

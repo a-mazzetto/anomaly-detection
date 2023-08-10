@@ -1,5 +1,8 @@
 """Graph Variational Auto-encoder"""
 # %% Imports
+import numpy as np
+from sklearn.metrics import roc_auc_score, confusion_matrix
+from scipy.special import expit
 import torch
 import torch.distributions as dist
 from torch_geometric.nn import GIN, global_mean_pool
@@ -199,4 +202,41 @@ if __name__ == "__main__":
     model(dataset[0])
     model(next(iter(loader)))
 
-# %%
+# %% Model evaluation
+def vae_score_given_model(model, datum, plots=True):
+    """Assuming model of type Graph VAE"""
+    # Bernoulli probabilities
+    if model.b_graph_enc:
+        graph_enc = model.graph_encoder(datum)
+    else:
+        graph_enc = None
+    encoded_ld = model.encoder_ld(datum, addition=graph_enc)
+    encoded_ud = model.encoder_ud(datum, addition=graph_enc)
+    mega_logits = model.decoder(
+        torch.stack([model.sampler(*encoded_ld) for _ in range(1000)]),
+        torch.stack([model.sampler(*encoded_ud) for _ in range(1000)])).detach().numpy()
+    mega_logits_mean = np.mean(mega_logits, axis=0)
+    mega_mean = expit(mega_logits_mean)
+
+    # Probabilities of y_true
+    y_true = to_dense_adj(datum.edge_index)[0, ...].numpy()
+    mega_logits_auc = roc_auc_score(y_true.flatten(), mega_logits_mean.flatten())
+    # If p(x = 1) = y, probability of doing worse when x = 1 is y,
+    # probability of doing worse when x = 0 is 1 - y
+    log_prob = np.sum(np.log(y_true * mega_mean + (1 - y_true) * (1 - mega_mean)))
+
+    if plots:
+        import matplotlib.pyplot as plt
+        # Confusion matrix with threshold 0.5
+        print(confusion_matrix(y_true.flatten(), mega_mean.flatten() > 0.5, normalize="all"))
+        fig, ax = plt.subplots(1, 3)
+        ax[0].imshow(y_true)
+        ax[0].set_title("True Adjacency")
+        ax[1].imshow(mega_mean)
+        ax[1].set_title("Model probability")
+        ax[2].imshow((mega_mean > 0.5).astype(float))
+        ax[2].set_title("Model probability thresholded 0.5")
+        fig.tight_layout()
+        fig.show()
+
+    return mega_logits_auc, log_prob
