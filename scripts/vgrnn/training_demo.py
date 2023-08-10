@@ -5,7 +5,7 @@ import argparse
 import torch
 from torch_geometric.data import Batch, Data
 from torch_geometric.loader import DataLoader
-from vgrnn.vgrnn import VGRNN
+from gnn.vgrnn import VGRNN
 from gnn_data_generation.vgrnn_test_dataset import VGRNNTestDataset
 from gnn.early_stopping import EarlyStopping
 from gnn.train_loops import vgrnn_train_loop, plot_vgrnn_training_result

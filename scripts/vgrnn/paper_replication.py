@@ -41,7 +41,7 @@ for adj in adj_orig_dense_list:
         torch.tensor(np.vstack(np.where(adj_orig_dense_list[0]))))
 
 # %% Model
-from vgrnn.vgrnn import VGRNN
+from gnn.vgrnn import VGRNN
 
 vgrnn_model = VGRNN(x_dim, h_dim, z_dim, n_layers, eps, bias=True)
 

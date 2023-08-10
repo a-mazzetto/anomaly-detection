@@ -7,7 +7,7 @@ import torch
 from torch_geometric.utils import to_dense_adj
 from torch_geometric.utils import unbatch, unbatch_edge_index
 from gnn_data_generation.vgrnn_test_dataset import VGRNNTestDataset
-from vgrnn.dynvae import *
+from gnn.dynvae import *
 from pvalues.combiners import fisher_pvalues_combiner, min_pvalue_combiner
 
 # %% Load model
