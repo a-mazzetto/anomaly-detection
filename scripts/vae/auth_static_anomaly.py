@@ -8,7 +8,7 @@ from torch_geometric.loader import DataLoader
 from data_generation.constants import NNODES
 from data_generation.dataset_operations import simple_aggregate_dataset_into_graphs
 from data_generation.dataset_operations import torchdata_from_links_list
-from graph_vae import VAE
+from gnn.vae import *
 from gnn.train_loops import vae_training_loop, plot_vae_training_results
 from gnn.early_stopping import EarlyStopping
 from cuda.cuda_utils import select_device
@@ -68,4 +68,12 @@ fig = plot_vae_training_results(history=history)
 os.makedirs("./plots", exist_ok=True)
 fig.savefig("./plots/auth_static.pdf")
 
+# %%
+model = torch.load("./data/auth_static.pt",
+                   map_location=torch.device('cpu'))
+
+model.eval()
+
+# %%
+vae_score_given_model(model, deployment_dataset[0])
 # %%
