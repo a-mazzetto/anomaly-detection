@@ -382,8 +382,8 @@ def vae_training_loop(model, optimizer, num_epochs, train_dl, val_dl, early_stop
                 elbo = nll + kl
                 val_loss += elbo.item() / len(val_input)
                 # Metrics
-                pred_adj = pred_adj.detach().numpy()
-                true_adj = true_adj.detach().numpy()
+                pred_adj = pred_adj.detach().cpu().numpy()
+                true_adj = true_adj.detach().cpu().numpy()
                 _sum_auc = 0
                 for _true, _pred in zip(true_adj, pred_adj):
                     _sum_auc += roc_auc_score(_true.flatten(), _pred.flatten())

@@ -219,7 +219,7 @@ class VAE(torch.nn.Module):
         self.decoder = InnerProductDecoder2(logits=True)
 
         # Loss
-        self.pos_weight = pos_weight
+        self.pos_weight = torch.tensor(pos_weight) if pos_weight is not None else None
 
     def forward(self, data):
         if self.b_graph_enc:
