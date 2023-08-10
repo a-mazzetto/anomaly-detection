@@ -1,9 +1,17 @@
 """Test script to evaluate anomaly level in uthorization data"""
 # %% Imports
+import os
 import numpy as np
+import torch
+from torch_geometric.data import Batch
+from torch_geometric.loader import DataLoader
 from data_generation.constants import NNODES
 from data_generation.dataset_operations import simple_aggregate_dataset_into_graphs
 from data_generation.dataset_operations import torchdata_from_links_list
+from graph_vae import VAE
+from gnn.train_loops import vae_training_loop, plot_vae_training_results
+from gnn.early_stopping import EarlyStopping
+from cuda.cuda_utils import select_device
 
 # %% Data: load dataset as list of tuples and split into 15s graphs
 DATASET = "./data/dataset_002/auth.txt"
@@ -35,5 +43,29 @@ train_dataset = torchdata_from_links_list(
 deployment_dataset = torchdata_from_links_list(
     [_agg for _agg, _n in zip(aggregated_dataset, n_graph) if _n > n_training_graphs],
     max_nodes=NNODES)
+
+# %% Model Training
+train_idx, test_idx = torch.utils.data.random_split(
+    train_dataset, (0.7, 0.3), torch.Generator().manual_seed(0))
+
+model_train_dataset = [train_dataset[_idx] for _idx in train_idx.indices]
+model_test_dataset = [train_dataset[_idx] for _idx in test_idx.indices]
+
+train_loader = DataLoader(model_train_dataset, batch_size=32, shuffle=True)
+test_loader = DataLoader(model_test_dataset, batch_size=32)
+
+device = select_device()
+
+model = VAE(device=device, prior_modes=0, latent_dim=32, hidden_dim=64,
+            n_gin_layers=3, graph_enc=False, pos_weight=None)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.5e-4, weight_decay=0.5e-4)
+
+history = vae_training_loop(model=model, optimizer=optimizer, num_epochs=2000,
+    train_dl=train_loader, val_dl=test_loader, early_stopping=EarlyStopping(patience=100),
+    best_model_path="./data/auth_static.pt", print_freq=10, device=device)
+
+fig = plot_vae_training_results(history=history)
+os.makedirs("./plots", exist_ok=True)
+fig.savefig("./plots/auth_static.pdf")
 
 # %%
