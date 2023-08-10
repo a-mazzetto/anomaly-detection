@@ -1,6 +1,8 @@
 """Operations on datasets"""
 from typing import List
 import numpy as np
+import torch
+from torch_geometric.data import Data
 
 def join_datasets_and_sort(dataset_0, dataset_1):
     """Assuming the first column is time"""
@@ -42,3 +44,22 @@ def simple_aggregate_dataset_into_graphs(dataset:List[tuple], time_interval:floa
                     graphs_by_links.append(unique_links)
             n_graph.append(i)
     return graphs_by_links, n_graph
+
+def torchdata_from_links_list(links_list, features_list=None, max_nodes=None):
+    if features_list is None and max_nodes is None:
+            raise ValueError("Either `features_list` or `max_nodes` must be provided!")
+    n_features = max_nodes if features_list is None else features_list[0].shape[-1]
+    data_list = []
+    for n_graph, links in enumerate(links_list):
+        n_nodes = links.max() + 1
+        if features_list is not None:
+            _feat = features_list[n_graph]
+            assert _feat.shape == (n_nodes, n_features), "Unexpected features matrix dimension"
+            features = torch.tensor(_feat, dtype=torch.float).reshape(n_nodes, -1)
+        else:
+            features = torch.nn.ConstantPad1d((0, max_nodes - n_nodes), 0.)(torch.eye(n_nodes))
+        links_matrix = torch.tensor(links, dtype=torch.int64).t().contiguous()
+        geom_data = Data(x=features, edge_index=links_matrix)
+        assert geom_data.validate(), "Issues with Data creation"
+        data_list.append(geom_data)
+    return data_list
