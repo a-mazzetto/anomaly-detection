@@ -63,3 +63,5 @@ for _graph in subgraphs:
     _dyn_graph = [_graph.subgraph_edges(_graph.es.select(subgraph=i),
                                         delete_vertices=False) for i in range(N_TIMES)]        
     dynamic_subgraphs.append(_dyn_graph)
+
+# %%
