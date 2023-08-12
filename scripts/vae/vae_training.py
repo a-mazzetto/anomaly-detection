@@ -32,7 +32,7 @@ try:
     parser.add_argument("-ngl", "--n_gin_layers", type=int, default=10, help="Number GIN layers")
     parser.add_argument("-modes", "--n_modes", type=int, default=0, help="Mixture of Gaussians?")
 
-    parser.add_argument("-bgenc", "--b_graph_enc", action="store_false", help="Use graph encoder?")
+    parser.add_argument("-bgenc", "--b_graph_enc", action="store_true", help="Use graph encoder?")
     parser.add_argument("-pwgt", "--pos_weight", type=float, default=None, help="Positive label weight")
 
     args = parser.parse_args()
