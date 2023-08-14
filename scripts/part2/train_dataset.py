@@ -2,6 +2,8 @@
 # %% Imports
 import pandas as pd
 import igraph as ig
+import torch
+from torch_geometric.data import Data, Batch
 from anomaly_detection.utils import switched_open
 
 # %% Load dataset (time, source, destination, anomaly)
@@ -63,5 +65,30 @@ for _graph in subgraphs:
     _dyn_graph = [_graph.subgraph_edges(_graph.es.select(subgraph=i),
                                         delete_vertices=False) for i in range(N_TIMES)]        
     dynamic_subgraphs.append(_dyn_graph)
+
+# %% Create torch dataset
+
+dataset_list = []
+for _dynamic_graph in dynamic_subgraphs:
+    _torch_dynamic_graph = []
+    for _graph in _dynamic_graph:
+        # Features first
+        features = torch.vstack((
+            torch.tensor(_graph.vs["score"], dtype=torch.float),
+            torch.tensor(_graph.indegree(), dtype=torch.float),
+            torch.tensor(_graph.outdegree(), dtype=torch.float)
+        )).t()
+        # Simplified edges set
+        edge_index = torch.tensor(
+            _graph.simplify(multiple=True, loops=False).get_edgelist(),
+            dtype=torch.int64).t().contiguous()
+        if edge_index.size(0) == 0:
+            break 
+        data = Data(x=features, edge_index=edge_index)
+        assert data.validate(), "Incorrect graph formulation"
+        _torch_dynamic_graph.append(data)
+    if len(_torch_dynamic_graph) == len(_dynamic_graph):
+        dataset_list.append(Batch.from_data_list(_torch_dynamic_graph))
+dataset = Batch.from_data_list(dataset_list)
 
 # %%
