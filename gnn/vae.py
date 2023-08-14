@@ -225,10 +225,13 @@ def vae_score_given_model(model, datum, plots=True):
     # probability of doing worse when x = 0 is 1 - y
     log_prob = np.sum(np.log(y_true * mega_mean + (1 - y_true) * (1 - mega_mean)))
 
+    # Confusion matrix
+    confusion = confusion_matrix(y_true.flatten(), mega_mean.flatten() > 0.5, normalize="all")
+
     if plots:
         import matplotlib.pyplot as plt
         # Confusion matrix with threshold 0.5
-        print(confusion_matrix(y_true.flatten(), mega_mean.flatten() > 0.5, normalize="all"))
+        print(confusion)
         fig, ax = plt.subplots(1, 3)
         ax[0].imshow(y_true)
         ax[0].set_title("True Adjacency")
@@ -239,4 +242,4 @@ def vae_score_given_model(model, datum, plots=True):
         fig.tight_layout()
         fig.show()
 
-    return mega_logits_auc, log_prob
+    return mega_logits_auc, log_prob, *confusion.flatten().tolist()

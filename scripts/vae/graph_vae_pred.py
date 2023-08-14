@@ -24,7 +24,7 @@ test_datum = selected_class[idx_choice]
 vae_score_given_model(model, test_datum)
 
 # %% Check for all
-results = np.ndarray((0, 3))
+results = np.ndarray((0, 7))
 MAX_ELEMENTS = 50
 n = {0:0, 1:0, 2:0}
 for idx, datum in enumerate(dataset):
