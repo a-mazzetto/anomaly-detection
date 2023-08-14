@@ -13,7 +13,8 @@ def kpath_dyngraphs(
         max_t = 1e8,
         interval = 60,
         n_intervals = 4,
-        k_path_len = 3
+        k_path_len = 3,
+        min_nodes = 10
 ):
     """Script to generate dynamic graphs from a dataset of type (time, source, destimation, anomaly) for training
     of a dynamic graph variational autoencoder
@@ -22,7 +23,8 @@ def kpath_dyngraphs(
     :param max_t: max training time (disregard dataset after)
     :param interval: aggregation time interval
     :param n_intervals: number of intervals in the dynamic graphs
-    :param k_path_len: length of out-path links used to construct subgraphs"""
+    :param k_path_len: length of out-path links used to construct subgraphs
+    :param min_nodes: minimum number of nodes to consider the graph"""
     source_nodes = pd.read_table(scores_file, names=("score", "timewhen"), index_col=0,
                                  dtype={"score": float, "timewhen": float})
     # Create graphs
@@ -82,7 +84,7 @@ def kpath_dyngraphs(
             edge_index = torch.tensor(
                 _graph.simplify(multiple=True, loops=False).get_edgelist(),
                 dtype=torch.int64).t().contiguous()
-            if edge_index.size(0) == 0:
+            if edge_index.size(0) == 0 or features.size(0) < min_nodes:
                 break 
             data = Data(x=features, edge_index=edge_index)
             assert data.validate(), "Incorrect graph formulation"
