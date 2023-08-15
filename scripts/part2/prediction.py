@@ -30,7 +30,8 @@ dynvae_score_given_model(model, dataset[idx_choice])
 # %% Check for all
 results = np.ndarray((0, 6))
 MAX_ELEMENTS = 50
-for idx in range(len(dataset)):
+idx = 0
+while idx < min(MAX_ELEMENTS, len(dataset)):
     print(f"{idx}th element")
     auc, logp, conf = dynvae_score_given_model(
         model, dataset[idx], plots=False)
@@ -40,5 +41,6 @@ for idx in range(len(dataset)):
             np.mean(logp),
             *np.mean(conf, axis=0)]).reshape(1, -1))
     )
+    idx += 1
 
 # %%
