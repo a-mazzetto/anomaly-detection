@@ -1,6 +1,8 @@
 """VGRNN imlementation following https://arxiv.org/abs/1908.09710
 Adapted for directed graphs
 Extended for Gaussian mixture prior"""
+import numpy as np
+from sklearn.metrics import roc_auc_score, confusion_matrix
 import torch
 from torch.nn import Sequential, Linear, ReLU, Softplus, ModuleList, Dropout
 from torch_geometric.nn.conv import GCNConv, GINConv
@@ -8,6 +10,7 @@ from torch_geometric.nn import GIN
 from torch.autograd import Variable
 import torch.nn.functional as F
 import torch.distributions as dist
+from torch_geometric.utils import to_dense_adj, unbatch, unbatch_edge_index
 
 def get_nmode_prior(device, num_modes, latent_dim):
     """
@@ -250,3 +253,62 @@ class DynVAE(torch.nn.Module):
                                                           reduction='none')
         nll_loss = -1 * norm * torch.mean(nll_loss_mat, dim=[0,1])
         return - nll_loss
+
+# Evaluate model
+def evaluate_dynvae(model, datum):
+    y_true = to_dense_adj(datum.edge_index, batch=datum.batch)
+    res = model(
+        torch.stack(unbatch(datum.x, batch=datum.batch)),
+        unbatch_edge_index(datum.edge_index, batch=datum.batch),
+        y_true
+    )
+    return y_true, [torch.sigmoid(i) for i in res[-1]]
+
+def dynvae_score_given_model(model, datum, plots=True):
+    import matplotlib.pyplot as plt
+    """Assuming model of type Graph VAE"""
+    # Bernoulli probabilities
+    y_pred = None
+    for _ in range(100):
+        y_true, yi_pred = evaluate_dynvae(model, datum)
+        if y_pred is None:
+            y_pred = [_t.detach().expand(1, -1, -1) for _t in yi_pred]
+        else:
+            for idx in range(len(y_pred)):
+                y_pred[idx] = torch.cat(
+                    (y_pred[idx], yi_pred[idx].detach().expand(1, -1, -1)))
+    mega_sample = [_t.mean(dim=[0]) for _t in y_pred]
+
+    # Probabilities of y_true
+    probs = [_y_true * _mega_sample + (1 - _mega_sample) * (1 - _y_true) for
+             _y_true, _mega_sample in zip(y_true, mega_sample)]
+    log_probs = [_prob.log().sum().item() for _prob in probs]
+
+    # AUC score
+    auc_score = [roc_auc_score(_y_true.numpy().flatten(),
+                               _mega_sample.numpy().flatten()) for
+                               _y_true, _mega_sample in zip(y_true, mega_sample)]
+
+    # Confusion matrix with threshold 0.5
+    confusion = np.array([confusion_matrix(
+        _y_true.numpy().flatten(),
+        _mega_sample.numpy().flatten() > 0.5,
+        normalize="all").flatten() for
+        _y_true, _mega_sample in zip(y_true, mega_sample)])
+
+    if plots:
+
+        fig, ax = plt.subplots(len(y_pred), 3)
+        for i in range(len(y_pred)):
+            ax[i, 0].imshow(y_true[i])
+            ax[i, 1].imshow(mega_sample[i])
+            ax[i, 2].imshow((mega_sample[i] > 0.5).type(torch.float))
+            if i == 0:
+                ax[i, 0].set_title("True Adjacency")
+                ax[i, 1].set_title("Model probability")
+                ax[i, 2].set_title("Model probability thresholded")
+        fig.set_figheight(10)
+        fig.tight_layout()
+        fig.show()
+
+    return auc_score, log_probs, confusion
