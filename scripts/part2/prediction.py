@@ -8,7 +8,7 @@ from data_generation.kpath_dyngraphs import kpath_dyngraphs
 
 # %% Load model
 model = torch.load(
-    "./data/trained_on_gpu/dynvae_part2_model.pt",
+    "./data/trained_on_gpu/dynvae_part2_model_modes.pt",
     map_location=torch.device('cpu'))
 
 # %%
@@ -42,5 +42,31 @@ while idx < min(MAX_ELEMENTS, len(dataset)):
             *np.mean(conf, axis=0)]).reshape(1, -1))
     )
     idx += 1
+
+# %% Evaluate on target nodes
+
+nodes = []
+scores = []
+with open("./data/dataset_003/DP/phase_4_source_score.txt", "r", encoding="utf-8") as file:
+    for line in file:
+        source, _, _ = line.strip().split("\t")
+        node_dynamic_graph = kpath_dyngraphs(
+            dataset_file="./data/dataset_003/auth_ddcrp.txt",
+            scores_file="./data/dataset_003/DP/phase_4_source_score.txt",
+            interval=15 * 60,
+            n_intervals=4,
+            k_path_len=3,
+            target_node=source)
+
+        _, norm_logps, _ = dynvae_score_given_model(
+            model,
+            node_dynamic_graph,
+            plots=False,
+            norm_log_prob=True)
+        norm_logp = np.mean(norm_logps)
+
+        print(f"Node {source}, score {norm_logp}")
+        nodes.append(source)
+        scores.append(norm_logp)
 
 # %%
