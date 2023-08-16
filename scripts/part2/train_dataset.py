@@ -7,13 +7,15 @@ from torch_geometric.data import Data, Batch
 from anomaly_detection.utils import switched_open
 
 # %% Load dataset (time, source, destination, anomaly)
-DATASET = "./data/dataset_003/auth_ddcrp.txt"
+DATASET = "./data/LANL/cutauth.txt.gz"
 # Source scores
-SCORES = "./data/dataset_003/DP/phase_4_source_score.txt"
+SCORES = "./data/LANL/PY/phase_4_source_score.txt"
+# Output
+OUTPUT = "./data/LANL/dyngraph_30.pt"
 
 # Parameters
 MAX_T_TRAINING = 24 * 60 * 60
-INTERVAL = 15 * 60
+INTERVAL = 30 * 60
 N_TIMES = 4
 K_NEIGHBOURS = 3
 
@@ -47,7 +49,7 @@ with switched_open(DATASET, "r") as file:
             current_links_list = []
             subgraph_list = []
             current_t0 = time
-        if source in source_nodes.index:
+        if source in source_nodes.index and destination in source_nodes.index:
             subgraph_list.append(int((time - current_t0) // INTERVAL))
             current_links_list.append((source, destination))
 
@@ -91,4 +93,5 @@ for _dynamic_graph in dynamic_subgraphs:
         dataset_list.append(Batch.from_data_list(_torch_dynamic_graph))
 dataset = Batch.from_data_list(dataset_list)
 
-# %%
+# %% Save
+torch.save(dataset, OUTPUT)
