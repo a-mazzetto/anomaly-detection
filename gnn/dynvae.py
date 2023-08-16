@@ -264,7 +264,7 @@ def evaluate_dynvae(model, datum):
     )
     return y_true, [torch.sigmoid(i) for i in res[-1]]
 
-def dynvae_score_given_model(model, datum, plots=True):
+def dynvae_score_given_model(model, datum, plots=True, norm_log_prob=False):
     import matplotlib.pyplot as plt
     """Assuming model of type Graph VAE"""
     # Bernoulli probabilities
@@ -283,6 +283,9 @@ def dynvae_score_given_model(model, datum, plots=True):
     probs = [_y_true * _mega_sample + (1 - _mega_sample) * (1 - _y_true) for
              _y_true, _mega_sample in zip(y_true, mega_sample)]
     log_probs = [_prob.log().sum().item() for _prob in probs]
+    ref_log_probs = [_prob.size(0) * _prob.size(1) * np.log(0.5) for _prob in probs]
+    if norm_log_prob:
+        log_probs = [_logp / _ref for _logp, _ref in zip(log_probs, ref_log_probs)]
 
     # AUC score
     auc_score = [roc_auc_score(_y_true.numpy().flatten(),
