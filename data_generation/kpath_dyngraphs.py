@@ -110,7 +110,10 @@ def kpath_dyngraphs(
             _torch_dynamic_graph.append(data)
         if len(_torch_dynamic_graph) == len(_dynamic_graph):
             dataset_list.append(Batch.from_data_list(_torch_dynamic_graph))
-    dataset = Batch.from_data_list(dataset_list)
+    if len(dataset_list) > 0:
+        dataset = Batch.from_data_list(dataset_list)
+    else:
+        dataset = None
 
     return dataset
 

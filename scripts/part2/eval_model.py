@@ -40,12 +40,15 @@ with open(SCORES, "r", encoding="utf-8") as file:
             k_path_len=K_PATH_LEN,
             target_node=source)
 
-        _, norm_logps, _ = dynvae_score_given_model(
-            model,
-            node_dynamic_graph,
-            plots=False,
-            norm_log_prob=True)
-        norm_logp = np.mean(norm_logps)
+        if node_dynamic_graph is None:
+            norm_logp = np.nan
+        else:
+            _, norm_logps, _ = dynvae_score_given_model(
+                model,
+                node_dynamic_graph,
+                plots=False,
+                norm_log_prob=True)
+            norm_logp = np.mean(norm_logps)
 
         print(f"Node {source}, score {norm_logp}")
         nodes.append(source)
