@@ -84,7 +84,8 @@ for _dynamic_graph in dynamic_subgraphs:
         edge_index = torch.tensor(
             _graph.simplify(multiple=True, loops=False).get_edgelist(),
             dtype=torch.int64).t().contiguous()
-        if edge_index.size(0) == 0:
+        # Disregards no link or all links
+        if edge_index.size(0) == 0 or edge_index.size(1) >= features.size(0)**2:
             break 
         data = Data(x=features, edge_index=edge_index)
         assert data.validate(), "Incorrect graph formulation"
