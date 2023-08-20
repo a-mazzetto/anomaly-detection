@@ -220,108 +220,111 @@ def vgrnn_train_loop(model, optimizer, num_epochs, train_loader, val_loader, ear
 
     # Initialize metrics
     
-    for epoch in range(num_epochs):
-        # initialize train and validation loss to 0
-        sum_loss_train, sum_kl_train, sum_nll_train = 0.0, 0.0, 0.0
-        sum_auc_train, sum_ap_train = np.zeros(shape=(1, n_graphs)), np.zeros(shape=(1, n_graphs))
-        sum_loss_valid, sum_kl_valid, sum_nll_valid = 0.0, 0.0, 0.0
-        sum_auc_valid, sum_ap_valid = np.zeros(shape=(1, n_graphs)), np.zeros(shape=(1, n_graphs))
+    try:
+        for epoch in range(num_epochs):
+            # initialize train and validation loss to 0
+            sum_loss_train, sum_kl_train, sum_nll_train = 0.0, 0.0, 0.0
+            sum_auc_train, sum_ap_train = np.zeros(shape=(1, n_graphs)), np.zeros(shape=(1, n_graphs))
+            sum_loss_valid, sum_kl_valid, sum_nll_valid = 0.0, 0.0, 0.0
+            sum_auc_valid, sum_ap_valid = np.zeros(shape=(1, n_graphs)), np.zeros(shape=(1, n_graphs))
 
-        model.train()
+            model.train()
 
-        for batch in train_loader:
-            batch = batch.to(device)
-
-            optimizer.zero_grad()
-            kl_loss, nll_loss, _, _, _, _ = model(
-                torch.stack(unbatch(batch.x, batch=batch.batch)),
-                unbatch_edge_index(batch.edge_index, batch=batch.batch),
-                to_dense_adj(batch.edge_index, batch=batch.batch).to(device)
-            )
-
-            elbo = kl_loss + nll_loss
-
-            elbo.backward()
-            optimizer.step()
-
-        # Gradient clipping to prevent exploding gradients
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=10)
-
-        model.eval()
-
-        with torch.no_grad():
-
-            # Remember that DataLoader shuffles the dataset at each iteration
             for batch in train_loader:
                 batch = batch.to(device)
-                dense_adj = to_dense_adj(batch.edge_index, batch=batch.batch)
-                kl_loss, nll_loss, _, _, _, pred = model(
+
+                optimizer.zero_grad()
+                kl_loss, nll_loss, _, _, _, _ = model(
                     torch.stack(unbatch(batch.x, batch=batch.batch)),
                     unbatch_edge_index(batch.edge_index, batch=batch.batch),
-                    dense_adj.to(device)
+                    to_dense_adj(batch.edge_index, batch=batch.batch).to(device)
                 )
+
                 elbo = kl_loss + nll_loss
-                sum_loss_train += elbo.item()
-                sum_kl_train += kl_loss.item()
-                sum_nll_train += nll_loss.item()
-                sum_auc_train += multiple_roc_auc_score(dense_adj, pred)
-                sum_ap_train += multiple_ap_score(dense_adj, pred)
-                
 
-            for batch in val_loader:
-                batch = batch.to(device)
-                dense_adj = to_dense_adj(batch.edge_index, batch=batch.batch)
-                kl_loss, nll_loss, _, _, _, pred = model(
-                    torch.stack(unbatch(batch.x, batch=batch.batch)),
-                    unbatch_edge_index(batch.edge_index, batch=batch.batch),
-                    dense_adj.to(device)
-                )
-                elbo = kl_loss + nll_loss
-                sum_loss_valid += elbo.item()
-                sum_kl_valid += kl_loss.item()
-                sum_nll_valid += nll_loss.item()
-                sum_auc_valid += multiple_roc_auc_score(dense_adj, pred)
-                sum_ap_valid += multiple_ap_score(dense_adj, pred)
+                elbo.backward()
+                optimizer.step()
 
-        avg_epoch_loss_train = sum_loss_train / len(train_loader)
-        avg_epoch_kl_train = sum_kl_train / len(train_loader)
-        avg_epoch_nll_train = sum_nll_train / len(train_loader)
-        avg_epoch_auc_train = sum_auc_train / len(train_loader)
-        avg_epoch_ap_train = sum_ap_train / len(train_loader)
-        
-        avg_epoch_loss_valid = sum_loss_valid / len(val_loader)
-        avg_epoch_kl_valid = sum_kl_valid / len(val_loader)
-        avg_epoch_nll_valid = sum_nll_valid / len(val_loader)
-        avg_epoch_auc_valid = sum_auc_valid / len(val_loader)
-        avg_epoch_ap_valid = sum_ap_valid / len(val_loader)
+            # Gradient clipping to prevent exploding gradients
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=10)
 
-        if print_freq is not None and (epoch + 1) % print_freq == 0:
-            print((f"Epoch {epoch + 1}: loss (kl + nll) - {avg_epoch_loss_train:.4f} "
-                   f"({avg_epoch_kl_train:.4f} + {avg_epoch_nll_train:.4f}), "
-                   f"val_loss (kl + nll) - {avg_epoch_loss_valid:.4f}, "
-                   f"({avg_epoch_kl_valid:.4f} + {avg_epoch_nll_valid:.4f})"))
+            model.eval()
 
-        epoch_losses_train.append(avg_epoch_loss_train)
-        epoch_kls_train.append(avg_epoch_kl_train)
-        epoch_nlls_train.append(avg_epoch_nll_train)
-        epoch_auc_train = np.vstack((epoch_auc_train, avg_epoch_auc_train))
-        epoch_ap_train = np.vstack((epoch_ap_train, avg_epoch_ap_train))
-        
-        epoch_losses_valid.append(avg_epoch_loss_valid)
-        epoch_kls_valid.append(avg_epoch_kl_valid)
-        epoch_nlls_valid.append(avg_epoch_nll_valid)
-        epoch_auc_valid = np.vstack((epoch_auc_valid, avg_epoch_auc_valid))
-        epoch_ap_valid = np.vstack((epoch_ap_valid, avg_epoch_ap_valid))
+            with torch.no_grad():
 
-        if early_stopping.min_valid_loss >= avg_epoch_loss_valid:
-            best_model_state_dict = deepcopy(model.state_dict())
+                # Remember that DataLoader shuffles the dataset at each iteration
+                for batch in train_loader:
+                    batch = batch.to(device)
+                    dense_adj = to_dense_adj(batch.edge_index, batch=batch.batch)
+                    kl_loss, nll_loss, _, _, _, pred = model(
+                        torch.stack(unbatch(batch.x, batch=batch.batch)),
+                        unbatch_edge_index(batch.edge_index, batch=batch.batch),
+                        dense_adj.to(device)
+                    )
+                    elbo = kl_loss + nll_loss
+                    sum_loss_train += elbo.item()
+                    sum_kl_train += kl_loss.item()
+                    sum_nll_train += nll_loss.item()
+                    sum_auc_train += multiple_roc_auc_score(dense_adj, pred)
+                    sum_ap_train += multiple_ap_score(dense_adj, pred)
+                    
 
-        if early_stopping.early_stop(avg_epoch_loss_valid):
-            break
-    
-    if best_model_path is not None:
-        model.load_state_dict(best_model_state_dict)
-        torch.save(model, best_model_path)
+                for batch in val_loader:
+                    batch = batch.to(device)
+                    dense_adj = to_dense_adj(batch.edge_index, batch=batch.batch)
+                    kl_loss, nll_loss, _, _, _, pred = model(
+                        torch.stack(unbatch(batch.x, batch=batch.batch)),
+                        unbatch_edge_index(batch.edge_index, batch=batch.batch),
+                        dense_adj.to(device)
+                    )
+                    elbo = kl_loss + nll_loss
+                    sum_loss_valid += elbo.item()
+                    sum_kl_valid += kl_loss.item()
+                    sum_nll_valid += nll_loss.item()
+                    sum_auc_valid += multiple_roc_auc_score(dense_adj, pred)
+                    sum_ap_valid += multiple_ap_score(dense_adj, pred)
+
+            avg_epoch_loss_train = sum_loss_train / len(train_loader)
+            avg_epoch_kl_train = sum_kl_train / len(train_loader)
+            avg_epoch_nll_train = sum_nll_train / len(train_loader)
+            avg_epoch_auc_train = sum_auc_train / len(train_loader)
+            avg_epoch_ap_train = sum_ap_train / len(train_loader)
+            
+            avg_epoch_loss_valid = sum_loss_valid / len(val_loader)
+            avg_epoch_kl_valid = sum_kl_valid / len(val_loader)
+            avg_epoch_nll_valid = sum_nll_valid / len(val_loader)
+            avg_epoch_auc_valid = sum_auc_valid / len(val_loader)
+            avg_epoch_ap_valid = sum_ap_valid / len(val_loader)
+
+            if print_freq is not None and (epoch + 1) % print_freq == 0:
+                print((f"Epoch {epoch + 1}: loss (kl + nll) - {avg_epoch_loss_train:.4f} "
+                    f"({avg_epoch_kl_train:.4f} + {avg_epoch_nll_train:.4f}), "
+                    f"val_loss (kl + nll) - {avg_epoch_loss_valid:.4f}, "
+                    f"({avg_epoch_kl_valid:.4f} + {avg_epoch_nll_valid:.4f})"))
+
+            epoch_losses_train.append(avg_epoch_loss_train)
+            epoch_kls_train.append(avg_epoch_kl_train)
+            epoch_nlls_train.append(avg_epoch_nll_train)
+            epoch_auc_train = np.vstack((epoch_auc_train, avg_epoch_auc_train))
+            epoch_ap_train = np.vstack((epoch_ap_train, avg_epoch_ap_train))
+            
+            epoch_losses_valid.append(avg_epoch_loss_valid)
+            epoch_kls_valid.append(avg_epoch_kl_valid)
+            epoch_nlls_valid.append(avg_epoch_nll_valid)
+            epoch_auc_valid = np.vstack((epoch_auc_valid, avg_epoch_auc_valid))
+            epoch_ap_valid = np.vstack((epoch_ap_valid, avg_epoch_ap_valid))
+
+            if early_stopping.min_valid_loss >= avg_epoch_loss_valid:
+                best_model_state_dict = deepcopy(model.state_dict())
+
+            if early_stopping.early_stop(avg_epoch_loss_valid):
+                break
+    except KeyboardInterrupt:
+        print("Saving best so far model...")
+    finally:
+        if best_model_path is not None:
+            model.load_state_dict(best_model_state_dict)
+            torch.save(model, best_model_path)
 
     history = {
         'loss': epoch_losses_train,
