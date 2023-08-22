@@ -6,12 +6,12 @@ import matplotlib.pyplot as plt
 from processes.dirichlet import generate_exp_ddcrp
 from processes.poisson import poisson_process
 from parameter_estimation.parameter_estimation import \
-    dirichlet_true_kn, dirichlet_est_pars
+    dirichlet_true_kn, dirichlet_est_pars, kn_hat
 
 # %% Initial parameters
 
 N_NODES = 100
-N_ITERS = 10000
+N_ITERS = 1000
 # Keep small N to avoid overflaw
 N = 1000
 TRUE_ALPHA = 5.0
@@ -33,8 +33,8 @@ for _ in range(N_ITERS):
         labels=N_NODES
     )
     counter = Counter(sequence)
-    meas_kn = len(counter)
-    meas_alpha = dirichlet_est_pars(meas_kn, N, N_NODES)
+    meas_kn = kn_hat(len(counter), N_NODES)
+    meas_alpha = float(dirichlet_est_pars(len(counter), N, N_NODES))
     meas_kn_list.append(meas_kn)
     meas_alpha_list.append(meas_alpha)
 

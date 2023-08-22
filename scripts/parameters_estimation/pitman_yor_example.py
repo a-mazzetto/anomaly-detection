@@ -5,13 +5,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from processes.pitman_yor import generate_pitman_yor
 from parameter_estimation.parameter_estimation import \
-    pitman_yor_true_kn_h1n, pitman_yor_est_pars
+    pitman_yor_true_kn_h1n, pitman_yor_est_pars, kn_h1n_hat
 
 # %% Initial parameters
 
 N_NODES = 100
 N_ITERS = 10000
-N = 10000
+N = 1000
 TRUE_ALPHA = 5.0
 TRUE_D = 0.25
 
@@ -32,7 +32,8 @@ for _ in range(N_ITERS):
     counter = Counter(sequence)
     meas_kn = len(counter)
     meas_h1n = sum(np.equal(list(counter.values()), 1))
-    meas_alpha, meas_d = pitman_yor_est_pars(meas_kn, meas_h1n, N, N_NODES)
+    meas_alpha, meas_d = pitman_yor_est_pars(meas_kn, meas_h1n, N, N_NODES, logaritmic=False)
+    meas_kn, meas_h1n = kn_h1n_hat(meas_kn, meas_h1n, N_NODES)
     meas_kn_list.append(meas_kn)
     meas_h1n_list.append(meas_h1n)
     meas_alpha_list.append(meas_alpha)

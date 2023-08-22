@@ -14,6 +14,21 @@ def pitman_yor_true_kn_h1n(true_alpha, true_d, n, n_nodes):
     true_h1n_corr = true_h1n * ((n_nodes - 1) / n_nodes)**(true_kn - 1)
     return true_kn_corr, true_h1n_corr
 
+def kn_h1n_hat(meas_kn, meas_h1n, n_nodes):
+    """Adjustment of kn and h1n under the Birthday Problem
+    """
+    # Adjustment under the Birthday Problem
+    kn_hat = np.log(1 - meas_kn / n_nodes) / np.log((n_nodes - 1) / n_nodes)
+    h1n_hat = meas_h1n * (n_nodes / (n_nodes - 1))**(kn_hat - 1)
+    return kn_hat, h1n_hat
+
+def kn_hat(meas_kn, n_nodes):
+    """Adjustment of kn and h1n under the Birthday Problem
+    """
+    # Adjustment under the Birthday Problem
+    kn_hat = np.log(1 - meas_kn / n_nodes) / np.log((n_nodes - 1) / n_nodes)
+    return kn_hat
+
 def pitman_yor_est_pars(meas_kn, meas_h1n, n, n_nodes, logaritmic=True):
     """Parameter estimation of Pitman-Yor parameters following the dissertation presented in
     ``Modelling Dynamic Network Evolution as Pitman-Yor Process" by Passino and Heard. In
