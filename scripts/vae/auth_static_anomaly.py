@@ -78,7 +78,7 @@ model.eval()
 # %%
 scores = []
 for datum in deployment_dataset:
-    _, logp, _, _, _, _ = vae_score_given_model(model, datum, plots=False)
+    _, logp, pvalue, _, _, _, _ = vae_score_given_model(model, datum, plots=False)
     scores.append(logp)
 
 anomalous_idxs = np.where(deployment_dataset_anomaly)
