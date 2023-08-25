@@ -7,6 +7,7 @@ import torch
 import torch.distributions as dist
 from torch_geometric.nn import GIN, global_mean_pool
 from torch_geometric.utils import to_dense_adj
+from pvalues.combiners import fisher_pvalues_combiner
 
 # %% Prior distribution
 def get_prior(device, num_modes, latent_dim):
@@ -203,7 +204,7 @@ if __name__ == "__main__":
     model(next(iter(loader)))
 
 # %% Model evaluation
-def vae_score_given_model(model, datum, plots=True):
+def vae_score_given_model(model, datum, plots=True, threshold=0.9):
     """Assuming model of type Graph VAE"""
     # Bernoulli probabilities
     if model.b_graph_enc:
@@ -221,25 +222,33 @@ def vae_score_given_model(model, datum, plots=True):
     # Probabilities of y_true
     y_true = to_dense_adj(datum.edge_index)[0, ...].numpy()
     mega_logits_auc = roc_auc_score(y_true.flatten(), mega_logits_mean.flatten())
-    # If p(x = 1) = y, probability of doing worse when x = 1 is y,
-    # probability of doing worse when x = 0 is 1 - y
-    log_prob = np.sum(np.log(y_true * mega_mean + (1 - y_true) * (1 - mega_mean)))
-
+    # Pobability of observed matrix
+    prob = y_true * mega_mean + (1 - y_true) * (1 - mega_mean)
+    # Log-likelihood
+    llk = np.sum(np.log(prob))
+    # p-value
+    # If p(X = x_pred) >= 0.5 then the p-value is 1 (anything is as extreme as what measured)
+    # If p(X = x_pred) <  0.5 then the p-value is min(p, 1 - p)
+    # Here we use the mid-pvalue
+    pvalue_matrix = prob
+    pvalue_matrix[prob >= 0.5] = (2 - pvalue_matrix[prob >= 0.5]) / 2
+    pvalue_matrix[prob < 0.5] = pvalue_matrix[prob < 0.5] / 2
+    pvalue = fisher_pvalues_combiner(pvalue_matrix.flatten())
     # Confusion matrix
-    confusion = confusion_matrix(y_true.flatten(), mega_mean.flatten() > 0.5, normalize="all")
+    confusion = confusion_matrix(y_true.flatten(), mega_mean.flatten() > threshold, normalize="all")
 
     if plots:
         import matplotlib.pyplot as plt
-        # Confusion matrix with threshold 0.5
+        # Confusion matrix with threshold `threshold`
         print(confusion)
         fig, ax = plt.subplots(1, 3)
         ax[0].imshow(y_true)
         ax[0].set_title("True Adjacency")
         ax[1].imshow(mega_mean)
         ax[1].set_title("Model probability")
-        ax[2].imshow((mega_mean > 0.5).astype(float))
+        ax[2].imshow((mega_mean > threshold).astype(float))
         ax[2].set_title("Model probability thresholded 0.5")
         fig.tight_layout()
         fig.show()
 
-    return mega_logits_auc, log_prob, *confusion.flatten().tolist()
+    return mega_logits_auc, llk, pvalue, *confusion.flatten().tolist()

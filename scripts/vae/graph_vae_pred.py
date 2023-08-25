@@ -8,7 +8,7 @@ from gnn.vae import *
 
 # %% Load model
 model = torch.load(
-    r"C:\Users\user\git\anomaly-detection\data\trained_on_gpu\230810_vae_demo_2.pt",
+    r"C:\Users\user\git\anomaly-detection\data\trained_on_gpu\230813_vae_demo_d.pt",
     map_location=torch.device('cpu'))
 
 # %%
@@ -24,8 +24,8 @@ test_datum = selected_class[idx_choice]
 vae_score_given_model(model, test_datum)
 
 # %% Check for all
-results = np.ndarray((0, 7))
-MAX_ELEMENTS = 50
+results = np.ndarray((0, 8))
+MAX_ELEMENTS = 1e8
 n = {0:0, 1:0, 2:0}
 for idx, datum in enumerate(dataset):
     if n[int(datum.y)] < MAX_ELEMENTS:
@@ -41,25 +41,34 @@ plt.hist(results[results[:, -1] == 1][:, 0], density=True, alpha=0.3, range=[0.8
 plt.hist(results[results[:, -1] == 2][:, 0], density=True, alpha=0.3, range=[0.8, 1], bins=50)
 plt.title("AUC")
 plt.legend(
-    ("Data used to create the model",
-     "Data from another process",
-     "Data from yet another process"))
+    ("Data Group I (training data)",
+     "Data Group II",
+     "Data Group III"))
 plt.show()
 
-plt.hist(results[results[:, -1] == 0][:, 1], density=True, alpha=0.3, color="blue")
-plt.vlines(results[results[:, -1] == 0][:, 1].mean(), ymin=0, ymax=0.0012,
+fig, ax = plt.subplots(1, 2)
+
+ax[0].hist(results[results[:, -1] == 0][:, 1], density=True, alpha=0.3, color="blue")
+ax[0].vlines(results[results[:, -1] == 0][:, 1].mean(), ymin=0, ymax=0.0008,
            linestyles="--", color="blue")
-plt.hist(results[results[:, -1] == 1][:, 1], density=True, alpha=0.3, color="red")
-plt.vlines(results[results[:, -1] == 1][:, 1].mean(), ymin=0, ymax=0.0012,
+ax[0].hist(results[results[:, -1] == 1][:, 1], density=True, alpha=0.3, color="red")
+ax[0].vlines(results[results[:, -1] == 1][:, 1].mean(), ymin=0, ymax=0.0008,
            linestyles="--", color="red")
-plt.hist(results[results[:, -1] == 2][:, 1], density=True, alpha=0.3, color="green")
-plt.vlines(results[results[:, -1] == 2][:, 1].mean(), ymin=0, ymax=0.0012,
+ax[0].hist(results[results[:, -1] == 2][:, 1], density=True, alpha=0.3, color="green")
+ax[0].vlines(results[results[:, -1] == 2][:, 1].mean(), ymin=0, ymax=0.0008,
            linestyles="--", color="green")
-plt.title("log_prob")
-plt.legend(
-    ("Data used to create the model",
-     "Data from another process",
-     "Data from yet another process"))
-plt.show()
+ax[0].set_title("Log-likelihood")
+
+ax[1].hist(results[results[:, -1] == 0][:, 2], density=True, alpha=0.3, color="blue", range=(0, 1))
+ax[1].hist(results[results[:, -1] == 1][:, 2], density=True, alpha=0.3, color="red", range=(0, 1))
+ax[1].hist(results[results[:, -1] == 2][:, 2], density=True, alpha=0.3, color="green", range=(0, 1))
+ax[1].set_title("p-value")
+ax[1].legend(
+    ("Data Group I (training data)",
+     "Data Group II",
+     "Data Group III"))
+fig.set_figwidth(10)
+
+fig.show()
 
 # %%
