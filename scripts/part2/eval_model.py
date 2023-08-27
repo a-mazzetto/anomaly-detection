@@ -8,6 +8,7 @@ import torch
 import schulze
 from gnn.dynvae import DynVAE, dynvae_score_given_model
 from data_generation.kpath_dyngraphs import kpath_dyngraphs
+from pvalues.combiners import fisher_pvalues_combiner
 
 # %% User Input
 MODEL = "./data/trained_on_gpu/dynvae_part2_model_modes.pt"
@@ -29,6 +30,7 @@ model.eval()
 nodes = []
 part1_scores = []
 part2_scores = []
+pvalues = {}
 with open(SCORES, "r", encoding="utf-8") as file:
     for line in file:
         source, score, _ = line.strip().split("\t")
@@ -54,6 +56,7 @@ with open(SCORES, "r", encoding="utf-8") as file:
         nodes.append(source)
         part1_scores.append(score)
         part2_scores.append(norm_logp)
+        pvalues[source] = fisher_pvalues_combiner(np.array((float(score), pvalue)))
 nodes = np.array(nodes)
 part1_scores = np.array(part1_scores)
 part2_scores = np.array(part2_scores)
@@ -71,4 +74,4 @@ final_rank = schulze._rank_p(nodes, schulze._compute_p(d, nodes))
 final_rank_expanded = [j for i in final_rank for j in i]
 
 with open(OUTPUT_FILE, "w", encoding="utf-8") as file:
-    file.writelines([i + "\n" for i in final_rank_expanded])
+    file.writelines([i + "\t" + str(pvalues[i]) + "\n" for i in final_rank_expanded])
