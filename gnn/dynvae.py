@@ -11,6 +11,7 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 import torch.distributions as dist
 from torch_geometric.utils import to_dense_adj, unbatch, unbatch_edge_index
+from pvalues.combiners import fisher_pvalues_combiner
 
 def get_nmode_prior(device, num_modes, latent_dim):
     """
@@ -264,7 +265,8 @@ def evaluate_dynvae(model, datum):
     )
     return y_true, [torch.sigmoid(i) for i in res[-1]]
 
-def dynvae_score_given_model(model, datum, plots=True, norm_log_prob=False):
+def dynvae_score_given_model(model, datum, plots=True, norm_log_prob=False,
+                             threshold=0.8):
     import matplotlib.pyplot as plt
     """Assuming model of type Graph VAE"""
     # Bernoulli probabilities
@@ -286,6 +288,16 @@ def dynvae_score_given_model(model, datum, plots=True, norm_log_prob=False):
     ref_log_probs = [_prob.size(0) * _prob.size(1) * np.log(0.5) for _prob in probs]
     if norm_log_prob:
         log_probs = [_logp / _ref for _logp, _ref in zip(log_probs, ref_log_probs)]
+    log_prob = sum(log_probs)
+
+    # p-value calculation
+    pvalues = []
+    for _prob in probs:
+        pvalue_matrix = _prob
+        pvalue_matrix[_prob >= 0.5] = (2 - pvalue_matrix[_prob >= 0.5]) / 2
+        pvalue_matrix[_prob < 0.5] = pvalue_matrix[_prob < 0.5] / 2
+        pvalues.append(fisher_pvalues_combiner(pvalue_matrix.flatten().numpy()))
+    pvalue = fisher_pvalues_combiner(np.array(pvalues))
 
     # AUC score
     auc_score = [roc_auc_score(_y_true.numpy().flatten(),
@@ -295,7 +307,7 @@ def dynvae_score_given_model(model, datum, plots=True, norm_log_prob=False):
     # Confusion matrix with threshold 0.5
     confusion = np.array([confusion_matrix(
         _y_true.numpy().flatten(),
-        _mega_sample.numpy().flatten() > 0.5,
+        _mega_sample.numpy().flatten() > threshold,
         normalize="all").flatten() for
         _y_true, _mega_sample in zip(y_true, mega_sample)])
 
@@ -305,7 +317,7 @@ def dynvae_score_given_model(model, datum, plots=True, norm_log_prob=False):
         for i in range(len(y_pred)):
             ax[i, 0].imshow(y_true[i])
             ax[i, 1].imshow(mega_sample[i])
-            ax[i, 2].imshow((mega_sample[i] > 0.5).type(torch.float))
+            ax[i, 2].imshow((mega_sample[i] > threshold).type(torch.float))
             if i == 0:
                 ax[i, 0].set_title("True Adjacency")
                 ax[i, 1].set_title("Model probability")
@@ -314,4 +326,4 @@ def dynvae_score_given_model(model, datum, plots=True, norm_log_prob=False):
         fig.tight_layout()
         fig.show()
 
-    return auc_score, log_probs, confusion
+    return auc_score, log_prob, pvalue, confusion

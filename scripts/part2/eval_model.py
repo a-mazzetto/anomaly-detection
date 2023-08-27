@@ -41,16 +41,16 @@ with open(SCORES, "r", encoding="utf-8") as file:
             target_node=source)
 
         if node_dynamic_graph is None:
-            norm_logp = np.nan
+            norm_log = np.nan
+            pvalue = np.nan
         else:
-            _, norm_logps, _ = dynvae_score_given_model(
+            _, norm_logp, pvalue, _ = dynvae_score_given_model(
                 model,
                 node_dynamic_graph,
                 plots=False,
                 norm_log_prob=True)
-            norm_logp = np.mean(norm_logps)
 
-        print(f"Node {source}, score {norm_logp}")
+        print(f"Node {source}, llk {norm_logp}, p-value {pvalue}")
         nodes.append(source)
         part1_scores.append(score)
         part2_scores.append(norm_logp)

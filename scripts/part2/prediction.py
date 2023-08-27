@@ -33,7 +33,7 @@ MAX_ELEMENTS = 50
 idx = 0
 while idx < min(MAX_ELEMENTS, len(dataset)):
     print(f"{idx}th element")
-    auc, logp, conf = dynvae_score_given_model(
+    auc, logp, pvalue, conf = dynvae_score_given_model(
         model, dataset[idx], plots=False)
     results = np.vstack((results,
         np.array([
@@ -58,14 +58,13 @@ with open("./data/dataset_003/DP/phase_4_source_score.txt", "r", encoding="utf-8
             k_path_len=3,
             target_node=source)
 
-        _, norm_logps, _ = dynvae_score_given_model(
+        _, norm_logp, pvalue, _ = dynvae_score_given_model(
             model,
             node_dynamic_graph,
             plots=False,
             norm_log_prob=True)
-        norm_logp = np.mean(norm_logps)
 
-        print(f"Node {source}, score {norm_logp}")
+        print(f"Node {source}, score {norm_logp}, pvalue {pvalue}")
         nodes.append(source)
         scores.append(norm_logp)
 
