@@ -19,6 +19,7 @@ N_INTERVALS = 4
 K_PATH_LEN = 3
 
 OUTPUT_FILE = "./data/dataset_003/final_ranking.txt"
+STREAM_OUTPUT_FILE = "./data/dataset_003/final_ranking_stream.txt"
 
 # %% Load model
 model = torch.load(
@@ -31,32 +32,39 @@ nodes = []
 part1_scores = []
 part2_scores = []
 pvalues = {}
-with open(SCORES, "r", encoding="utf-8") as file:
-    for line in file:
-        source, score, _ = line.strip().split("\t")
-        node_dynamic_graph = kpath_dyngraphs(
-            dataset_file=DATASET,
-            scores_file=SCORES,
-            interval=INTERVAL,
-            n_intervals=N_INTERVALS,
-            k_path_len=K_PATH_LEN,
-            target_node=source)
+with open(STREAM_OUTPUT_FILE, "w", encoding="utf-8") as stream_out:
+    with open(SCORES, "r", encoding="utf-8") as file:
+        for line in file:
+            source, score, _ = line.strip().split("\t")
+            node_dynamic_graph = kpath_dyngraphs(
+                dataset_file=DATASET,
+                scores_file=SCORES,
+                interval=INTERVAL,
+                n_intervals=N_INTERVALS,
+                k_path_len=K_PATH_LEN,
+                target_node=source)
 
-        if node_dynamic_graph is None:
-            norm_log = np.nan
-            pvalue = np.nan
-        else:
-            _, norm_logp, pvalue, _ = dynvae_score_given_model(
-                model,
-                node_dynamic_graph,
-                plots=False,
-                norm_log_prob=True)
+            if node_dynamic_graph is None:
+                norm_log = np.nan
+                pvalue = np.nan
+            else:
+                _, norm_logp, pvalue, _ = dynvae_score_given_model(
+                    model,
+                    node_dynamic_graph,
+                    plots=False,
+                    norm_log_prob=True)
 
-        print(f"Node {source}, llk {norm_logp}, p-value {pvalue}")
-        nodes.append(source)
-        part1_scores.append(score)
-        part2_scores.append(norm_logp)
-        pvalues[source] = fisher_pvalues_combiner(np.array((float(score), pvalue)))
+            print(f"Node {source}, llk {norm_logp}, p-value {pvalue}")
+            nodes.append(source)
+            part1_scores.append(score)
+            part2_scores.append(norm_logp)
+            pvalues[source] = fisher_pvalues_combiner(np.array((float(score), pvalue)))
+            stream_out.write("\t".join((
+                source,
+                str(score),
+                str(pvalue),
+                str(pvalues[source]),
+                str(norm_logp))) + "\n")
 nodes = np.array(nodes)
 part1_scores = np.array(part1_scores)
 part2_scores = np.array(part2_scores)
