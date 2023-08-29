@@ -45,7 +45,7 @@ with open(STREAM_OUTPUT_FILE, "w", encoding="utf-8") as stream_out:
                 target_node=source)
 
             if node_dynamic_graph is None:
-                norm_log = np.nan
+                norm_logp = np.nan
                 pvalue = np.nan
             else:
                 _, norm_logp, pvalue, _ = dynvae_score_given_model(
