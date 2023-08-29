@@ -49,7 +49,8 @@ def kpath_dyngraphs(
             time = float(time)
             if time > max_t:
                 break
-            if time > min_t:
+            # We are interested only in destinations that are also sources
+            if time > min_t and destination in source_nodes.index:
                 macro_group = (time - min_t) // (interval * n_intervals)
                 if current_group is None:
                     current_group = macro_group
